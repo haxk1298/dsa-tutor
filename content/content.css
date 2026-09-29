@@ -1,20 +1,20 @@
 /* ============================================================
-   DSA TUTOR
+   DSA TUTOR - FLOATING DRAGGABLE WINDOW
    ============================================================ */
 
 #dsa-tutor-container {
+    position: fixed !important;
 
-    position: fixed;
+    top: 100px;
+    right: 30px;
 
-    top: 80px;
-
-    right: 20px;
+    left: auto;
+    bottom: auto;
 
     width: 380px;
-
     height: 540px;
 
-    z-index: 999999;
+    z-index: 2147483647 !important;
 
     background: #ffffff;
 
@@ -38,15 +38,15 @@
 
     color: #111827;
 
+    box-sizing: border-box;
 }
 
 
 /* ============================================================
-   HEADER
+   HEADER - DRAG HANDLE
    ============================================================ */
 
 #dsa-tutor-header {
-
     display: flex;
 
     align-items: center;
@@ -59,18 +59,27 @@
 
     color: #ffffff;
 
+    cursor: grab;
+
+    user-select: none;
+
+    -webkit-user-select: none;
+
+    touch-action: none;
+}
+
+
+#dsa-tutor-header:active {
+    cursor: grabbing;
 }
 
 
 #dsa-tutor-header strong {
-
     font-size: 15px;
-
 }
 
 
 #dsa-tutor-platform {
-
     margin-top: 2px;
 
     font-size: 11px;
@@ -78,12 +87,10 @@
     opacity: 0.7;
 
     text-transform: uppercase;
-
 }
 
 
 #dsa-tutor-close {
-
     border: none;
 
     background: transparent;
@@ -96,6 +103,7 @@
 
     line-height: 1;
 
+    padding: 0;
 }
 
 
@@ -104,7 +112,6 @@
    ============================================================ */
 
 #dsa-tutor-body {
-
     flex: 1;
 
     padding: 12px;
@@ -113,6 +120,7 @@
 
     background: #f9fafb;
 
+    min-height: 0;
 }
 
 
@@ -121,7 +129,6 @@
    ============================================================ */
 
 .dsa-tutor-problem {
-
     margin-bottom: 14px;
 
     padding: 10px;
@@ -131,12 +138,10 @@
     border: 1px solid #e5e7eb;
 
     border-radius: 10px;
-
 }
 
 
 .dsa-label {
-
     margin-bottom: 5px;
 
     font-size: 10px;
@@ -146,18 +151,44 @@
     color: #6b7280;
 
     letter-spacing: 0.5px;
-
 }
 
 
 #dsa-tutor-title {
-
     font-size: 14px;
 
     font-weight: 600;
 
     line-height: 1.4;
+}
 
+
+/* ============================================================
+   PROGRESS
+   ============================================================ */
+
+.dsa-tutor-progress {
+    display: flex;
+
+    justify-content: space-between;
+
+    gap: 8px;
+
+    margin-bottom: 12px;
+
+    padding: 8px 10px;
+
+    background: #f3f4f6;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 8px;
+
+    color: #6b7280;
+
+    font-size: 11px;
+
+    font-weight: 600;
 }
 
 
@@ -166,7 +197,6 @@
    ============================================================ */
 
 .dsa-tutor-message {
-
     display: flex;
 
     align-items: flex-start;
@@ -187,11 +217,11 @@
 
     line-height: 1.5;
 
+    word-wrap: break-word;
 }
 
 
 .dsa-bot {
-
     flex-shrink: 0;
 
     width: 24px;
@@ -203,7 +233,6 @@
     align-items: center;
 
     justify-content: center;
-
 }
 
 
@@ -212,7 +241,6 @@
    ============================================================ */
 
 .dsa-user-message {
-
     max-width: 85%;
 
     margin-left: auto;
@@ -232,7 +260,6 @@
     line-height: 1.5;
 
     word-wrap: break-word;
-
 }
 
 
@@ -241,7 +268,6 @@
    ============================================================ */
 
 .dsa-tutor-message code {
-
     padding: 2px 5px;
 
     background: #f3f4f6;
@@ -254,7 +280,6 @@
         monospace;
 
     font-size: 12px;
-
 }
 
 
@@ -263,7 +288,6 @@
    ============================================================ */
 
 .dsa-relevance-warning {
-
     display: flex;
 
     gap: 8px;
@@ -285,14 +309,11 @@
     font-size: 13px;
 
     line-height: 1.5;
-
 }
 
 
 .dsa-warning-icon {
-
     flex-shrink: 0;
-
 }
 
 
@@ -301,7 +322,6 @@
    ============================================================ */
 
 #dsa-tutor-footer {
-
     display: flex;
 
     align-items: center;
@@ -314,6 +334,7 @@
 
     border-top: 1px solid #e5e7eb;
 
+    flex-shrink: 0;
 }
 
 
@@ -322,7 +343,6 @@
    ============================================================ */
 
 #dsa-tutor-input {
-
     flex: 1;
 
     min-width: 0;
@@ -336,14 +356,11 @@
     outline: none;
 
     font-size: 13px;
-
 }
 
 
 #dsa-tutor-input:focus {
-
     border-color: #6b7280;
-
 }
 
 
@@ -352,7 +369,6 @@
    ============================================================ */
 
 #dsa-tutor-hint {
-
     height: 36px;
 
     padding: 0 8px;
@@ -372,14 +388,11 @@
     font-weight: 600;
 
     white-space: nowrap;
-
 }
 
 
 #dsa-tutor-hint:hover {
-
     background: #e5e7eb;
-
 }
 
 
@@ -388,7 +401,6 @@
    ============================================================ */
 
 #dsa-tutor-debug {
-
     height: 36px;
 
     padding: 0 8px;
@@ -408,14 +420,11 @@
     font-weight: 600;
 
     white-space: nowrap;
-
 }
 
 
 #dsa-tutor-debug:hover {
-
     background: #fee2e2;
-
 }
 
 
@@ -424,7 +433,6 @@
    ============================================================ */
 
 #dsa-tutor-send {
-
     width: 36px;
 
     height: 36px;
@@ -442,12 +450,28 @@
     cursor: pointer;
 
     font-size: 16px;
-
 }
 
 
 #dsa-tutor-send:hover {
-
     background: #374151;
+}
 
+
+/* ============================================================
+   DRAGGING STATE
+   ============================================================ */
+
+#dsa-tutor-container.dsa-tutor-dragging {
+    opacity: 0.95;
+
+    user-select: none;
+
+    -webkit-user-select: none;
+}
+
+
+#dsa-tutor-container.dsa-tutor-dragging
+#dsa-tutor-header {
+    cursor: grabbing;
 }

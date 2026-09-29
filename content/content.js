@@ -1,8 +1,6 @@
 // ============================================================
 // DSA TUTOR - CONTENT SCRIPT
-// PHASE 5 - CODE DEBUGGING
 // ============================================================
-
 
 console.log(
     "DSA Tutor content script loaded"
@@ -18,6 +16,24 @@ let currentProblem = null;
 let conversationHistory = [];
 
 let hintLevel = 0;
+
+let sessionStats = {
+
+    questionsAsked: 0,
+
+    hintsUsed: 0,
+
+    debugAttempts: 0
+
+};
+
+
+// ============================================================
+// STORAGE KEY
+// ============================================================
+
+const STORAGE_KEY =
+    "dsaTutorSessions";
 
 
 // ============================================================
@@ -74,7 +90,383 @@ function cleanText(text) {
 
 
 // ============================================================
-// LEETCODE PROBLEM EXTRACTION
+// CREATE PROBLEM KEY
+// ============================================================
+
+function getProblemKey(problem) {
+
+    if (!problem) {
+
+        return null;
+
+    }
+
+
+    // URL is the best identifier
+
+    if (problem.url) {
+
+        return problem.url;
+
+    }
+
+
+    return (
+
+        problem.platform +
+        "::" +
+        problem.title
+
+    );
+
+}
+
+
+// ============================================================
+// DEFAULT SESSION
+// ============================================================
+
+function createEmptySession(problem) {
+
+    return {
+
+        problemKey:
+            getProblemKey(problem),
+
+        problemTitle:
+            problem.title || "Problem",
+
+        platform:
+            problem.platform || "unknown",
+
+        url:
+            problem.url || "",
+
+        conversationHistory: [],
+
+        hintLevel: 0,
+
+        sessionStats: {
+
+            questionsAsked: 0,
+
+            hintsUsed: 0,
+
+            debugAttempts: 0
+
+        },
+
+        updatedAt:
+            Date.now()
+
+    };
+
+}
+
+
+// ============================================================
+// LOAD ALL SESSIONS
+// ============================================================
+
+async function loadSessions() {
+
+    return new Promise(
+
+        resolve => {
+
+            chrome.storage.local.get(
+
+                [STORAGE_KEY],
+
+                result => {
+
+                    resolve(
+
+                        result[STORAGE_KEY] || {}
+
+                    );
+
+                }
+
+            );
+
+        }
+
+    );
+
+}
+
+
+// ============================================================
+// SAVE ALL SESSIONS
+// ============================================================
+
+async function saveSessions(
+    sessions
+) {
+
+    return new Promise(
+
+        resolve => {
+
+            chrome.storage.local.set(
+
+                {
+
+                    [STORAGE_KEY]:
+                        sessions
+
+                },
+
+                () => {
+
+                    resolve();
+
+                }
+
+            );
+
+        }
+
+    );
+
+}
+
+
+// ============================================================
+// SAVE CURRENT SESSION
+// ============================================================
+
+async function saveCurrentSession() {
+
+    if (!currentProblem) {
+
+        return;
+
+    }
+
+
+    const problemKey =
+        getProblemKey(
+            currentProblem
+        );
+
+
+    if (!problemKey) {
+
+        return;
+
+    }
+
+
+    const sessions =
+        await loadSessions();
+
+
+    sessions[problemKey] = {
+
+        problemKey,
+
+        problemTitle:
+            currentProblem.title ||
+            "Problem",
+
+        platform:
+            currentProblem.platform ||
+            "unknown",
+
+        url:
+            currentProblem.url ||
+            window.location.href,
+
+        conversationHistory:
+            conversationHistory,
+
+        hintLevel:
+            hintLevel,
+
+        sessionStats:
+            sessionStats,
+
+        updatedAt:
+            Date.now()
+
+    };
+
+
+    await saveSessions(
+        sessions
+    );
+
+}
+
+
+// ============================================================
+// LOAD CURRENT SESSION
+// ============================================================
+
+async function loadCurrentSession(
+    problem
+) {
+
+    if (!problem) {
+
+        return false;
+
+    }
+
+
+    const problemKey =
+        getProblemKey(
+            problem
+        );
+
+
+    if (!problemKey) {
+
+        return false;
+
+    }
+
+
+    const sessions =
+        await loadSessions();
+
+
+    const session =
+        sessions[problemKey];
+
+
+    if (!session) {
+
+        return false;
+
+    }
+
+
+    currentProblem =
+        problem;
+
+
+    conversationHistory =
+        Array.isArray(
+            session.conversationHistory
+        )
+
+            ? session.conversationHistory
+
+            : [];
+
+
+    hintLevel =
+        typeof session.hintLevel === "number"
+
+            ? session.hintLevel
+
+            : 0;
+
+
+    sessionStats =
+        session.sessionStats || {
+
+            questionsAsked: 0,
+
+            hintsUsed: 0,
+
+            debugAttempts: 0
+
+        };
+
+
+    console.log(
+        "Previous session restored:",
+        session
+    );
+
+
+    return true;
+
+}
+
+
+// ============================================================
+// DELETE CURRENT SESSION
+// ============================================================
+
+async function deleteCurrentSession() {
+
+    if (!currentProblem) {
+
+        return;
+
+    }
+
+
+    const problemKey =
+        getProblemKey(
+            currentProblem
+        );
+
+
+    if (!problemKey) {
+
+        return;
+
+    }
+
+
+    const sessions =
+        await loadSessions();
+
+
+    delete sessions[problemKey];
+
+
+    await saveSessions(
+        sessions
+    );
+
+}
+
+
+// ============================================================
+// START NEW SESSION
+// ============================================================
+
+async function startNewSession(
+    problem
+) {
+
+    currentProblem =
+        problem;
+
+
+    conversationHistory =
+        [];
+
+
+    hintLevel =
+        0;
+
+
+    sessionStats = {
+
+        questionsAsked: 0,
+
+        hintsUsed: 0,
+
+        debugAttempts: 0
+
+    };
+
+
+    await saveCurrentSession();
+
+}
+
+
+// ============================================================
+// PLATFORM EXTRACTION
 // ============================================================
 
 function extractLeetCodeProblem() {
@@ -102,9 +494,9 @@ function extractLeetCodeProblem() {
     };
 
 
-    // ========================================================
+    // --------------------------------------------------------
     // TITLE
-    // ========================================================
+    // --------------------------------------------------------
 
     const titleSelectors = [
 
@@ -153,9 +545,9 @@ function extractLeetCodeProblem() {
     }
 
 
-    // ========================================================
-    // META TITLE FALLBACK
-    // ========================================================
+    // --------------------------------------------------------
+    // META TITLE
+    // --------------------------------------------------------
 
     if (!problem.title) {
 
@@ -195,9 +587,9 @@ function extractLeetCodeProblem() {
     }
 
 
-    // ========================================================
-    // DOCUMENT TITLE FALLBACK
-    // ========================================================
+    // --------------------------------------------------------
+    // DOCUMENT TITLE
+    // --------------------------------------------------------
 
     if (!problem.title) {
 
@@ -217,9 +609,9 @@ function extractLeetCodeProblem() {
     }
 
 
-    // ========================================================
+    // --------------------------------------------------------
     // URL FALLBACK
-    // ========================================================
+    // --------------------------------------------------------
 
     if (!problem.title) {
 
@@ -241,7 +633,7 @@ function extractLeetCodeProblem() {
 
             const slug =
                 parts[
-                    problemIndex + 1
+                problemIndex + 1
                 ];
 
 
@@ -270,9 +662,9 @@ function extractLeetCodeProblem() {
     }
 
 
-    // ========================================================
+    // --------------------------------------------------------
     // DESCRIPTION
-    // ========================================================
+    // --------------------------------------------------------
 
     const selectors = [
 
@@ -320,10 +712,6 @@ function extractLeetCodeProblem() {
             );
 
 
-        // ----------------------------------------------------
-        // CONSTRAINTS
-        // ----------------------------------------------------
-
         const constraintsMatch =
             text.match(
 
@@ -342,10 +730,6 @@ function extractLeetCodeProblem() {
         }
 
 
-        // ----------------------------------------------------
-        // EXAMPLES
-        // ----------------------------------------------------
-
         const examplesMatch =
             text.match(
 
@@ -363,10 +747,6 @@ function extractLeetCodeProblem() {
 
         }
 
-
-        // ----------------------------------------------------
-        // DESCRIPTION
-        // ----------------------------------------------------
 
         let description =
             text;
@@ -402,9 +782,9 @@ function extractLeetCodeProblem() {
     }
 
 
-    // ========================================================
-    // DESCRIPTION FALLBACK
-    // ========================================================
+    // --------------------------------------------------------
+    // FALLBACK
+    // --------------------------------------------------------
 
     if (
         !problem.description
@@ -424,7 +804,7 @@ function extractLeetCodeProblem() {
 
 
 // ============================================================
-// CODEFORCES PROBLEM EXTRACTION
+// CODEFORCES EXTRACTION
 // ============================================================
 
 function extractCodeforcesProblem() {
@@ -601,7 +981,7 @@ function extractProblem() {
 
 
 // ============================================================
-// SAVE CURRENT PROBLEM
+// SAVE PROBLEM
 // ============================================================
 
 function saveProblem(problem) {
@@ -627,49 +1007,7 @@ function saveProblem(problem) {
 
 
 // ============================================================
-// DETECT PROBLEM
-// ============================================================
-
-function sendProblemToExtension() {
-
-    const problem =
-        extractProblem();
-
-
-    if (!problem) {
-
-        console.log(
-            "No supported problem detected."
-        );
-
-        return;
-
-    }
-
-
-    saveProblem(
-        problem
-    );
-
-
-    chrome.runtime.sendMessage({
-
-        type:
-            "PROBLEM_DETECTED",
-
-        problem:
-            problem
-
-    });
-
-}
-
-
-sendProblemToExtension();
-
-
-// ============================================================
-// EXTRACT CURRENT CODE
+// CODE EXTRACTION
 // ============================================================
 
 function extractCurrentCode() {
@@ -678,17 +1016,9 @@ function extractCurrentCode() {
         getPlatform();
 
 
-    // ========================================================
-    // LEETCODE
-    // ========================================================
-
     if (
         platform === "leetcode"
     ) {
-
-        // ----------------------------------------------------
-        // Monaco editor
-        // ----------------------------------------------------
 
         const lines =
             document.querySelectorAll(
@@ -720,10 +1050,6 @@ function extractCurrentCode() {
         }
 
 
-        // ----------------------------------------------------
-        // Textarea fallback
-        // ----------------------------------------------------
-
         const textareas =
             document.querySelectorAll(
                 "textarea"
@@ -735,16 +1061,12 @@ function extractCurrentCode() {
             of textareas
         ) {
 
-            const value =
-                textarea.value;
-
-
             if (
-                value &&
-                value.trim().length > 10
+                textarea.value &&
+                textarea.value.trim().length > 10
             ) {
 
-                return value;
+                return textarea.value;
 
             }
 
@@ -752,10 +1074,6 @@ function extractCurrentCode() {
 
     }
 
-
-    // ========================================================
-    // CODEFORCES
-    // ========================================================
 
     if (
         platform === "codeforces"
@@ -821,7 +1139,7 @@ function extractCurrentCode() {
 
 
 // ============================================================
-// DETECT PROGRAMMING LANGUAGE
+// LANGUAGE DETECTION
 // ============================================================
 
 function detectLanguage(code) {
@@ -882,7 +1200,7 @@ function detectLanguage(code) {
 
 
 // ============================================================
-// CREATE CHATBOT UI
+// CREATE UI
 // ============================================================
 
 function createTutorUI(problem) {
@@ -921,8 +1239,8 @@ function createTutorUI(problem) {
                 <div id="dsa-tutor-platform">
 
                     ${escapeHtml(
-                        problem.platform
-                    )}
+        problem.platform
+    )}
 
                 </div>
 
@@ -954,14 +1272,29 @@ function createTutorUI(problem) {
 
                 <div id="dsa-tutor-title">
 
-                    ${
-                        escapeHtml(
-                            problem.title ||
-                            "Problem"
-                        )
-                    }
+                    ${escapeHtml(
+        problem.title ||
+        "Problem"
+    )
+        }
 
                 </div>
+
+            </div>
+
+
+            <div
+                id="dsa-tutor-progress"
+                class="dsa-tutor-progress"
+            >
+
+                <span>
+                    Hint Level: ${hintLevel}
+                </span>
+
+                <span>
+                    Questions: ${sessionStats.questionsAsked}
+                </span>
 
             </div>
 
@@ -981,9 +1314,8 @@ function createTutorUI(problem) {
 
                     <br><br>
 
-                    I can help you with hints,
-                    approaches, and debugging
-                    your code.
+                    Your conversation and progress
+                    for this problem are saved locally.
 
                 </div>
 
@@ -1040,7 +1372,227 @@ function createTutorUI(problem) {
         container
     );
 
+    // ========================================================
+    // DRAGGABLE FLOATING WINDOW
+    // ========================================================
 
+    const dragHandle =
+        document.getElementById(
+            "dsa-tutor-header"
+        );
+
+    let isDragging = false;
+
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+
+
+    // --------------------------------------------------------
+    // POINTER DOWN
+    // --------------------------------------------------------
+
+    dragHandle.addEventListener(
+        "pointerdown",
+        (event) => {
+
+            // Do not drag when clicking close button
+
+            if (
+                event.target.closest(
+                    "#dsa-tutor-close"
+                )
+            ) {
+                return;
+            }
+
+
+            isDragging = true;
+
+
+            const rect =
+                container.getBoundingClientRect();
+
+
+            dragOffsetX =
+                event.clientX -
+                rect.left;
+
+
+            dragOffsetY =
+                event.clientY -
+                rect.top;
+
+
+            // IMPORTANT:
+            // Remove right/bottom positioning
+            // and use exact left/top coordinates.
+
+            container.style.setProperty(
+                "left",
+                `${rect.left}px`,
+                "important"
+            );
+
+            container.style.setProperty(
+                "top",
+                `${rect.top}px`,
+                "important"
+            );
+
+            container.style.setProperty(
+                "right",
+                "auto",
+                "important"
+            );
+
+            container.style.setProperty(
+                "bottom",
+                "auto",
+                "important"
+            );
+
+
+            container.classList.add(
+                "dsa-tutor-dragging"
+            );
+
+
+            dragHandle.setPointerCapture(
+                event.pointerId
+            );
+
+
+            event.preventDefault();
+
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // POINTER MOVE
+    // --------------------------------------------------------
+
+    dragHandle.addEventListener(
+        "pointermove",
+        (event) => {
+
+            if (!isDragging) {
+                return;
+            }
+
+
+            let newLeft =
+                event.clientX -
+                dragOffsetX;
+
+
+            let newTop =
+                event.clientY -
+                dragOffsetY;
+
+
+            // --------------------------------------------
+            // KEEP INSIDE VIEWPORT
+            // --------------------------------------------
+
+            const maxLeft =
+                window.innerWidth -
+                container.offsetWidth;
+
+
+            const maxTop =
+                window.innerHeight -
+                container.offsetHeight;
+
+
+            newLeft =
+                Math.max(
+                    0,
+                    Math.min(
+                        newLeft,
+                        maxLeft
+                    )
+                );
+
+
+            newTop =
+                Math.max(
+                    0,
+                    Math.min(
+                        newTop,
+                        maxTop
+                    )
+                );
+
+
+            container.style.setProperty(
+                "left",
+                `${newLeft}px`,
+                "important"
+            );
+
+
+            container.style.setProperty(
+                "top",
+                `${newTop}px`,
+                "important"
+            );
+
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // POINTER UP
+    // --------------------------------------------------------
+
+    dragHandle.addEventListener(
+        "pointerup",
+        (event) => {
+
+            isDragging = false;
+
+
+            container.classList.remove(
+                "dsa-tutor-dragging"
+            );
+
+
+            try {
+
+                dragHandle.releasePointerCapture(
+                    event.pointerId
+                );
+
+            } catch (error) {
+
+                // Pointer capture may already
+                // have been released.
+
+            }
+
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // POINTER CANCEL
+    // --------------------------------------------------------
+
+    dragHandle.addEventListener(
+        "pointercancel",
+        () => {
+
+            isDragging = false;
+
+
+            container.classList.remove(
+                "dsa-tutor-dragging"
+            );
+
+        }
+    );
+    
     // ========================================================
     // CLOSE
     // ========================================================
@@ -1053,7 +1605,9 @@ function createTutorUI(problem) {
 
             "click",
 
-            () => {
+            async () => {
+
+                await saveCurrentSession();
 
                 container.remove();
 
@@ -1150,7 +1704,7 @@ function createTutorUI(problem) {
 
 
     // ========================================================
-    // ENTER KEY
+    // ENTER
     // ========================================================
 
     document
@@ -1161,7 +1715,7 @@ function createTutorUI(problem) {
 
             "keydown",
 
-            (event) => {
+            event => {
 
                 if (
                     event.key === "Enter"
@@ -1186,326 +1740,35 @@ function createTutorUI(problem) {
 
 
 // ============================================================
-// DEBUG CURRENT CODE
+// UPDATE PROGRESS UI
 // ============================================================
 
-async function debugCurrentCode() {
+function updateProgressUI() {
 
-    const code =
-        extractCurrentCode();
-
-
-    // ========================================================
-    // NO CODE FOUND
-    // ========================================================
-
-    if (
-        !code ||
-        !code.trim()
-    ) {
-
-        addBotMessage(
-
-            "I couldn't detect your code from the editor. Please make sure your code is visible in the editor, or paste your code into the chat."
-
-        );
-
-        return;
-
-    }
-
-
-    const language =
-        detectLanguage(
-            code
-        );
-
-
-    // ========================================================
-    // DISPLAY DEBUG REQUEST
-    // ========================================================
-
-    const body =
+    const progress =
         document.getElementById(
-            "dsa-tutor-body"
+            "dsa-tutor-progress"
         );
 
 
-    if (!body) {
+    if (!progress) {
 
         return;
 
     }
 
 
-    const userMessage =
-        document.createElement(
-            "div"
-        );
+    progress.innerHTML = `
 
+        <span>
+            Hint Level: ${hintLevel}
+        </span>
 
-    userMessage.className =
-        "dsa-user-message";
-
-
-    userMessage.innerText =
-        "🐞 Debug my code";
-
-
-    body.appendChild(
-        userMessage
-    );
-
-
-    body.scrollTop =
-        body.scrollHeight;
-
-
-    // ========================================================
-    // TEMPORARY HISTORY
-    // ========================================================
-
-    const pendingHistory = [
-
-        ...conversationHistory,
-
-        {
-
-            role:
-                "user",
-
-            content:
-                "Debug my code"
-
-        }
-
-    ];
-
-
-    // ========================================================
-    // LOADING
-    // ========================================================
-
-    const loadingMessage =
-        document.createElement(
-            "div"
-        );
-
-
-    loadingMessage.className =
-        "dsa-tutor-message";
-
-
-    loadingMessage.innerHTML = `
-
-        <div class="dsa-bot">
-
-            🤖
-
-        </div>
-
-        <div>
-
-            Analyzing your code...
-
-        </div>
+        <span>
+            Questions: ${sessionStats.questionsAsked}
+        </span>
 
     `;
-
-
-    body.appendChild(
-        loadingMessage
-    );
-
-
-    body.scrollTop =
-        body.scrollHeight;
-
-
-    try {
-
-        // ====================================================
-        // SEND CODE TO BACKEND
-        // ====================================================
-
-        const response =
-            await fetch(
-
-                "http://localhost:5000/api/chat",
-
-                {
-
-                    method:
-                        "POST",
-
-                    headers: {
-
-                        "Content-Type":
-                            "application/json"
-
-                    },
-
-                    body:
-                        JSON.stringify({
-
-                            problem:
-                                currentProblem,
-
-                            history:
-                                pendingHistory,
-
-                            hintLevel:
-                                hintLevel,
-
-                            code:
-                                code,
-
-                            language:
-                                language,
-
-                            debugMode:
-                                true
-
-                        })
-
-                }
-
-            );
-
-
-        if (
-            !response.ok
-        ) {
-
-            const errorData =
-                await response.json()
-                    .catch(
-                        () => null
-                    );
-
-
-            throw new Error(
-
-                errorData?.message ||
-
-                `Server returned ${response.status}`
-
-            );
-
-        }
-
-
-        const data =
-            await response.json();
-
-
-        loadingMessage.remove();
-
-
-        // ====================================================
-        // BACKEND ERROR
-        // ====================================================
-
-        if (
-            !data.success
-        ) {
-
-            addBotMessage(
-
-                data.message ||
-
-                "Something went wrong."
-
-            );
-
-            return;
-
-        }
-
-
-        // ====================================================
-        // UNRELATED
-        // ====================================================
-
-        if (
-            data.related === false
-        ) {
-
-            addRelevanceWarning(
-
-                data.response
-
-            );
-
-            return;
-
-        }
-
-
-        // ====================================================
-        // SAVE CONVERSATION
-        // ====================================================
-
-        conversationHistory.push({
-
-            role:
-                "user",
-
-            content:
-                "Debug my code"
-
-        });
-
-
-        if (
-            typeof data.hintLevel ===
-            "number"
-        ) {
-
-            hintLevel =
-                data.hintLevel;
-
-        }
-
-
-        addBotMessage(
-            data.response
-        );
-
-
-        conversationHistory.push({
-
-            role:
-                "assistant",
-
-            content:
-                data.response
-
-        });
-
-    }
-
-
-    catch (error) {
-
-        console.error(
-            "Debug error:",
-            error
-        );
-
-
-        loadingMessage.remove();
-
-
-        addBotMessage(
-
-            error.message ||
-
-            "Something went wrong while debugging your code."
-
-        );
-
-    }
 
 }
 
@@ -1584,15 +1847,11 @@ async function addUserMessage(
     loadingMessage.innerHTML = `
 
         <div class="dsa-bot">
-
             🤖
-
         </div>
 
         <div>
-
             Thinking...
-
         </div>
 
     `;
@@ -1681,7 +1940,326 @@ async function addUserMessage(
             addBotMessage(
 
                 data.message ||
+                "Something went wrong."
 
+            );
+
+            return;
+
+        }
+
+
+        // ----------------------------------------------------
+        // UNRELATED QUESTION
+        // ----------------------------------------------------
+
+        if (
+            data.related === false
+        ) {
+
+            addRelevanceWarning(
+                data.response
+            );
+
+            return;
+
+        }
+
+
+        // ----------------------------------------------------
+        // SAVE MESSAGE
+        // ----------------------------------------------------
+
+        conversationHistory.push({
+
+            role:
+                "user",
+
+            content:
+                message
+
+        });
+
+
+        sessionStats.questionsAsked++;
+
+
+        // ----------------------------------------------------
+        // UPDATE HINT LEVEL
+        // ----------------------------------------------------
+
+        if (
+            typeof data.hintLevel ===
+            "number"
+        ) {
+
+            if (
+                data.hintLevel >
+                hintLevel
+            ) {
+
+                sessionStats.hintsUsed++;
+
+            }
+
+
+            hintLevel =
+                data.hintLevel;
+
+        }
+
+
+        // ----------------------------------------------------
+        // SAVE ASSISTANT RESPONSE
+        // ----------------------------------------------------
+
+        addBotMessage(
+            data.response
+        );
+
+
+        conversationHistory.push({
+
+            role:
+                "assistant",
+
+            content:
+                data.response
+
+        });
+
+
+        await saveCurrentSession();
+
+        updateProgressUI();
+
+    }
+
+
+    catch (error) {
+
+        console.error(
+            "Backend error:",
+            error
+        );
+
+
+        loadingMessage.remove();
+
+
+        addBotMessage(
+
+            error.message ||
+
+            "Something went wrong."
+
+        );
+
+    }
+
+}
+
+
+// ============================================================
+// DEBUG CURRENT CODE
+// ============================================================
+
+async function debugCurrentCode() {
+
+    const code =
+        extractCurrentCode();
+
+
+    if (
+        !code ||
+        !code.trim()
+    ) {
+
+        addBotMessage(
+
+            "I couldn't detect your code from the editor. Please make sure your code is visible in the editor, or paste your code into the chat."
+
+        );
+
+        return;
+
+    }
+
+
+    const language =
+        detectLanguage(
+            code
+        );
+
+
+    const body =
+        document.getElementById(
+            "dsa-tutor-body"
+        );
+
+
+    if (!body) {
+
+        return;
+
+    }
+
+
+    const userMessage =
+        document.createElement(
+            "div"
+        );
+
+
+    userMessage.className =
+        "dsa-user-message";
+
+
+    userMessage.innerText =
+        "🐞 Debug my code";
+
+
+    body.appendChild(
+        userMessage
+    );
+
+
+    body.scrollTop =
+        body.scrollHeight;
+
+
+    const pendingHistory = [
+
+        ...conversationHistory,
+
+        {
+
+            role:
+                "user",
+
+            content:
+                "Debug my code"
+
+        }
+
+    ];
+
+
+    const loadingMessage =
+        document.createElement(
+            "div"
+        );
+
+
+    loadingMessage.className =
+        "dsa-tutor-message";
+
+
+    loadingMessage.innerHTML = `
+
+        <div class="dsa-bot">
+            🤖
+        </div>
+
+        <div>
+            Analyzing your code...
+        </div>
+
+    `;
+
+
+    body.appendChild(
+        loadingMessage
+    );
+
+
+    body.scrollTop =
+        body.scrollHeight;
+
+
+    try {
+
+        const response =
+            await fetch(
+
+                "http://localhost:5000/api/chat",
+
+                {
+
+                    method:
+                        "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json"
+
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            problem:
+                                currentProblem,
+
+                            history:
+                                pendingHistory,
+
+                            hintLevel:
+                                hintLevel,
+
+                            code:
+                                code,
+
+                            language:
+                                language,
+
+                            debugMode:
+                                true
+
+                        })
+
+                }
+
+            );
+
+
+        if (
+            !response.ok
+        ) {
+
+            const errorData =
+                await response.json()
+                    .catch(
+                        () => null
+                    );
+
+
+            throw new Error(
+
+                errorData?.message ||
+
+                `Server returned ${response.status}`
+
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        loadingMessage.remove();
+
+
+        if (
+            !data.success
+        ) {
+
+            addBotMessage(
+
+                data.message ||
                 "Something went wrong."
 
             );
@@ -1696,9 +2274,7 @@ async function addUserMessage(
         ) {
 
             addRelevanceWarning(
-
                 data.response
-
             );
 
             return;
@@ -1712,15 +2288,30 @@ async function addUserMessage(
                 "user",
 
             content:
-                message
+                "Debug my code"
 
         });
+
+
+        sessionStats.questionsAsked++;
+
+        sessionStats.debugAttempts++;
 
 
         if (
             typeof data.hintLevel ===
             "number"
         ) {
+
+            if (
+                data.hintLevel >
+                hintLevel
+            ) {
+
+                sessionStats.hintsUsed++;
+
+            }
+
 
             hintLevel =
                 data.hintLevel;
@@ -1743,13 +2334,18 @@ async function addUserMessage(
 
         });
 
+
+        await saveCurrentSession();
+
+        updateProgressUI();
+
     }
 
 
     catch (error) {
 
         console.error(
-            "Backend error:",
+            "Debug error:",
             error
         );
 
@@ -1761,7 +2357,7 @@ async function addUserMessage(
 
             error.message ||
 
-            "Something went wrong."
+            "Something went wrong while debugging your code."
 
         );
 
@@ -1869,8 +2465,6 @@ function formatTutorMessage(
         );
 
 
-    // Remove LaTeX blocks
-
     formatted =
         formatted.replace(
             /\$\$(.*?)\$\$/gs,
@@ -1891,8 +2485,6 @@ function formatTutorMessage(
             "$1"
         );
 
-
-    // Convert LaTeX text
 
     formatted =
         formatted.replace(
@@ -1915,8 +2507,6 @@ function formatTutorMessage(
         );
 
 
-    // Bold Markdown
-
     formatted =
         formatted.replace(
             /\*\*(.*?)\*\*/g,
@@ -1924,16 +2514,12 @@ function formatTutorMessage(
         );
 
 
-    // Inline code
-
     formatted =
         formatted.replace(
             /`([^`]+)`/g,
             "<code>$1</code>"
         );
 
-
-    // New lines
 
     formatted =
         formatted.replace(
@@ -1989,8 +2575,8 @@ function addRelevanceWarning(
         <div>
 
             ${escapeHtml(
-                message
-            )}
+        message
+    )}
 
         </div>
 
@@ -2032,48 +2618,220 @@ function escapeHtml(
 
 
 // ============================================================
-// EXTENSION MESSAGE
+// ACTIVATE TUTOR
 // ============================================================
 
 chrome.runtime.onMessage.addListener(
 
-    (message) => {
+    async message => {
 
         if (
-            message.type ===
+            message.type !==
             "ACTIVATE_TUTOR"
         ) {
 
-            const problem =
-                currentProblem ||
-                extractProblem();
+            return;
+
+        }
 
 
-            if (!problem) {
-
-                alert(
-                    "Could not detect a supported DSA problem."
-                );
-
-                return;
-
-            }
+        const problem =
+            currentProblem ||
+            extractProblem();
 
 
-            saveProblem(
+        if (!problem) {
+
+            alert(
+                "Could not detect a supported DSA problem."
+            );
+
+            return;
+
+        }
+
+
+        currentProblem =
+            problem;
+
+
+        saveProblem(
+            problem
+        );
+
+
+        // ----------------------------------------------------
+        // TRY RESTORING PREVIOUS SESSION
+        // ----------------------------------------------------
+
+        const restored =
+            await loadCurrentSession(
                 problem
             );
 
 
-            createTutorUI(
+        if (!restored) {
+
+            await startNewSession(
                 problem
+            );
+
+        }
+
+
+        // ----------------------------------------------------
+        // CREATE UI
+        // ----------------------------------------------------
+
+        createTutorUI(
+            problem
+        );
+
+
+        // ----------------------------------------------------
+        // RENDER OLD CONVERSATION
+        // ----------------------------------------------------
+
+        if (
+            restored
+        ) {
+
+            restoreConversationUI();
+
+        }
+
+
+        updateProgressUI();
+
+    }
+
+);
+
+
+// ============================================================
+// RESTORE CONVERSATION UI
+// ============================================================
+
+function restoreConversationUI() {
+
+    const body =
+        document.getElementById(
+            "dsa-tutor-body"
+        );
+
+
+    if (!body) {
+
+        return;
+
+    }
+
+
+    // Remove initial greeting
+
+    const initialMessage =
+        body.querySelector(
+            ".dsa-tutor-message"
+        );
+
+
+    if (initialMessage) {
+
+        initialMessage.remove();
+
+    }
+
+
+    for (
+        const message
+        of conversationHistory
+    ) {
+
+        if (
+            message.role ===
+            "user"
+        ) {
+
+            const userMessage =
+                document.createElement(
+                    "div"
+                );
+
+
+            userMessage.className =
+                "dsa-user-message";
+
+
+            userMessage.innerText =
+                message.content;
+
+
+            body.appendChild(
+                userMessage
+            );
+
+        }
+
+
+        else if (
+            message.role ===
+            "assistant"
+        ) {
+
+            addBotMessage(
+                message.content
             );
 
         }
 
     }
 
-);
+
+    body.scrollTop =
+        body.scrollHeight;
+
+}
+
+
+// ============================================================
+// INITIAL PROBLEM DETECTION
+// ============================================================
+
+async function initializeProblem() {
+
+    const problem =
+        extractProblem();
+
+
+    if (!problem) {
+
+        console.log(
+            "No supported problem detected."
+        );
+
+        return;
+
+    }
+
+
+    currentProblem =
+        problem;
+
+
+    saveProblem(
+        problem
+    );
+
+
+    console.log(
+        "Problem initialized:",
+        problem.title
+    );
+
+}
+
+
+initializeProblem();
 
 
 // ============================================================
@@ -2086,66 +2844,141 @@ let lastKnownUrl =
 
 setInterval(
 
-    () => {
+    async () => {
 
         const currentUrl =
             window.location.href;
 
 
         if (
-            currentUrl !==
+            currentUrl ===
             lastKnownUrl
         ) {
 
-            lastKnownUrl =
-                currentUrl;
+            return;
+
+        }
 
 
-            console.log(
-                "Problem page changed. Re-extracting problem."
+        lastKnownUrl =
+            currentUrl;
+
+
+        console.log(
+            "Problem page changed. Re-extracting problem."
+        );
+
+
+        const newProblem =
+            extractProblem();
+
+
+        if (!newProblem) {
+
+            return;
+
+        }
+
+
+        const oldProblemKey =
+            getProblemKey(
+                currentProblem
             );
 
 
-            const newProblem =
-                extractProblem();
+        const newProblemKey =
+            getProblemKey(
+                newProblem
+            );
 
 
-            if (newProblem) {
+        // ----------------------------------------------------
+        // ONLY RESET IF ACTUAL PROBLEM CHANGED
+        // ----------------------------------------------------
 
-                currentProblem =
-                    newProblem;
+        if (
+            oldProblemKey ===
+            newProblemKey
+        ) {
 
-
-                conversationHistory =
-                    [];
-
-
-                hintLevel =
-                    0;
-
-
-                saveProblem(
-                    newProblem
-                );
-
-
-                const titleElement =
-                    document.getElementById(
-                        "dsa-tutor-title"
-                    );
-
-
-                if (titleElement) {
-
-                    titleElement.innerText =
-                        newProblem.title ||
-                        "Problem";
-
-                }
-
-            }
+            return;
 
         }
+
+
+        currentProblem =
+            newProblem;
+
+
+        conversationHistory =
+            [];
+
+
+        hintLevel =
+            0;
+
+
+        sessionStats = {
+
+            questionsAsked: 0,
+
+            hintsUsed: 0,
+
+            debugAttempts: 0
+
+        };
+
+
+        saveProblem(
+            newProblem
+        );
+
+
+        // ----------------------------------------------------
+        // TRY RESTORING NEW PROBLEM SESSION
+        // ----------------------------------------------------
+
+        const restored =
+            await loadCurrentSession(
+                newProblem
+            );
+
+
+        if (!restored) {
+
+            await startNewSession(
+                newProblem
+            );
+
+        }
+
+
+        // ----------------------------------------------------
+        // UPDATE UI
+        // ----------------------------------------------------
+
+        const titleElement =
+            document.getElementById(
+                "dsa-tutor-title"
+            );
+
+
+        if (titleElement) {
+
+            titleElement.innerText =
+                newProblem.title ||
+                "Problem";
+
+        }
+
+
+        updateProgressUI();
+
+
+        console.log(
+            "Problem session switched:",
+            newProblem.title
+        );
 
     },
 
