@@ -2,29 +2,18 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 
-const connectDB =
-    require("./config/db");
-
+const connectDB = require("./config/db");
 
 dotenv.config();
-
-
-// ============================================================
-// CONNECT DATABASE
-// ============================================================
-
-connectDB();
 
 
 // ============================================================
 // EXPRESS APP
 // ============================================================
 
-const app =
-    express();
+const app = express();
 
-const PORT =
-    process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000;
 
 
 // ============================================================
@@ -40,21 +29,28 @@ app.use(express.json());
 // ROOT
 // ============================================================
 
-app.get(
-    "/",
-    (req, res) => {
+app.get("/", (req, res) => {
 
-        res.json({
+    res.json({
+        success: true,
+        message: "DSA Tutor backend is running"
+    });
 
-            success: true,
+});
 
-            message:
-                "DSA Tutor backend is running"
 
-        });
+// ============================================================
+// HEALTH CHECK
+// ============================================================
 
-    }
-);
+app.get("/api/health", (req, res) => {
+
+    res.json({
+        success: true,
+        message: "DSA Tutor backend is healthy"
+    });
+
+});
 
 
 // ============================================================
@@ -82,6 +78,11 @@ app.use(
     authRoutes
 );
 
+
+// ============================================================
+// SESSION ROUTES
+// ============================================================
+
 const sessionRoutes =
     require("./routes/sessionRoutes");
 
@@ -90,17 +91,39 @@ app.use(
     sessionRoutes
 );
 
+
 // ============================================================
 // START SERVER
 // ============================================================
 
-app.listen(
-    PORT,
-    () => {
+async function startServer() {
 
-        console.log(
-            `DSA Tutor backend running on http://localhost:${PORT}`
+    try {
+
+        await connectDB();
+
+        app.listen(
+            PORT,
+            () => {
+
+                console.log(
+                    `DSA Tutor backend running on port ${PORT}`
+                );
+
+            }
         );
 
+    } catch (error) {
+
+        console.error(
+            "Failed to start server:",
+            error.message
+        );
+
+        process.exit(1);
+
     }
-);
+
+}
+
+startServer();
