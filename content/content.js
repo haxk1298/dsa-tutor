@@ -1,4 +1,12 @@
-console.log("DSA Tutor content script loaded");
+// ============================================================
+// DSA TUTOR - CONTENT SCRIPT
+// PHASE 5 - CODE DEBUGGING
+// ============================================================
+
+
+console.log(
+    "DSA Tutor content script loaded"
+);
 
 
 // ============================================================
@@ -146,7 +154,7 @@ function extractLeetCodeProblem() {
 
 
     // ========================================================
-    // FALLBACK TITLE - META
+    // META TITLE FALLBACK
     // ========================================================
 
     if (!problem.title) {
@@ -188,7 +196,7 @@ function extractLeetCodeProblem() {
 
 
     // ========================================================
-    // FALLBACK TITLE - DOCUMENT TITLE
+    // DOCUMENT TITLE FALLBACK
     // ========================================================
 
     if (!problem.title) {
@@ -210,7 +218,7 @@ function extractLeetCodeProblem() {
 
 
     // ========================================================
-    // FALLBACK TITLE - URL
+    // URL FALLBACK
     // ========================================================
 
     if (!problem.title) {
@@ -244,11 +252,14 @@ function extractLeetCodeProblem() {
                     slug
                         .split("-")
                         .map(
+
                             word =>
+
                                 word
                                     .charAt(0)
                                     .toUpperCase() +
                                 word.slice(1)
+
                         )
                         .join(" ");
 
@@ -260,7 +271,7 @@ function extractLeetCodeProblem() {
 
 
     // ========================================================
-    // DESCRIPTION CONTAINER
+    // DESCRIPTION
     // ========================================================
 
     const selectors = [
@@ -300,10 +311,6 @@ function extractLeetCodeProblem() {
 
     }
 
-
-    // ========================================================
-    // EXTRACT DESCRIPTION
-    // ========================================================
 
     if (descriptionElement) {
 
@@ -396,7 +403,7 @@ function extractLeetCodeProblem() {
 
 
     // ========================================================
-    // FALLBACK DESCRIPTION
+    // DESCRIPTION FALLBACK
     // ========================================================
 
     if (
@@ -445,10 +452,6 @@ function extractCodeforcesProblem() {
     };
 
 
-    // ========================================================
-    // TITLE
-    // ========================================================
-
     const titleElement =
         document.querySelector(
 
@@ -466,10 +469,6 @@ function extractCodeforcesProblem() {
 
     }
 
-
-    // ========================================================
-    // PROBLEM STATEMENT
-    // ========================================================
 
     const statement =
         document.querySelector(
@@ -489,10 +488,6 @@ function extractCodeforcesProblem() {
             statement.innerText
         );
 
-
-    // ========================================================
-    // INPUT / OUTPUT
-    // ========================================================
 
     const inputIndex =
         text.search(
@@ -523,10 +518,6 @@ function extractCodeforcesProblem() {
     }
 
 
-    // ========================================================
-    // EXAMPLES
-    // ========================================================
-
     const exampleIndex =
         text.search(
             /Examples?/i
@@ -544,10 +535,6 @@ function extractCodeforcesProblem() {
 
     }
 
-
-    // ========================================================
-    // DESCRIPTION
-    // ========================================================
 
     let description =
         text;
@@ -632,18 +619,15 @@ function saveProblem(problem) {
 
 
     console.log(
-
         "Current problem:",
-
         problem
-
     );
 
 }
 
 
 // ============================================================
-// DETECT CURRENT PROBLEM
+// DETECT PROBLEM
 // ============================================================
 
 function sendProblemToExtension() {
@@ -685,14 +669,223 @@ sendProblemToExtension();
 
 
 // ============================================================
+// EXTRACT CURRENT CODE
+// ============================================================
+
+function extractCurrentCode() {
+
+    const platform =
+        getPlatform();
+
+
+    // ========================================================
+    // LEETCODE
+    // ========================================================
+
+    if (
+        platform === "leetcode"
+    ) {
+
+        // ----------------------------------------------------
+        // Monaco editor
+        // ----------------------------------------------------
+
+        const lines =
+            document.querySelectorAll(
+                ".monaco-editor .view-line"
+            );
+
+
+        if (
+            lines.length > 0
+        ) {
+
+            const code =
+                Array.from(lines)
+                    .map(
+                        line =>
+                            line.innerText
+                    )
+                    .join("\n");
+
+
+            if (
+                code.trim()
+            ) {
+
+                return code;
+
+            }
+
+        }
+
+
+        // ----------------------------------------------------
+        // Textarea fallback
+        // ----------------------------------------------------
+
+        const textareas =
+            document.querySelectorAll(
+                "textarea"
+            );
+
+
+        for (
+            const textarea
+            of textareas
+        ) {
+
+            const value =
+                textarea.value;
+
+
+            if (
+                value &&
+                value.trim().length > 10
+            ) {
+
+                return value;
+
+            }
+
+        }
+
+    }
+
+
+    // ========================================================
+    // CODEFORCES
+    // ========================================================
+
+    if (
+        platform === "codeforces"
+    ) {
+
+        const sourceTextarea =
+            document.querySelector(
+                'textarea[name="source"]'
+            );
+
+
+        if (
+            sourceTextarea &&
+            sourceTextarea.value.trim()
+        ) {
+
+            return sourceTextarea.value;
+
+        }
+
+
+        const textarea =
+            document.querySelector(
+                "textarea"
+            );
+
+
+        if (
+            textarea &&
+            textarea.value.trim()
+        ) {
+
+            return textarea.value;
+
+        }
+
+
+        const lines =
+            document.querySelectorAll(
+                ".CodeMirror-code .CodeMirror-line"
+            );
+
+
+        if (
+            lines.length > 0
+        ) {
+
+            return Array.from(lines)
+                .map(
+                    line =>
+                        line.innerText
+                )
+                .join("\n");
+
+        }
+
+    }
+
+
+    return "";
+
+}
+
+
+// ============================================================
+// DETECT PROGRAMMING LANGUAGE
+// ============================================================
+
+function detectLanguage(code) {
+
+    const text =
+        code.toLowerCase();
+
+
+    if (
+        text.includes("#include") ||
+        text.includes("using namespace std") ||
+        text.includes("vector<") ||
+        text.includes("cout")
+    ) {
+
+        return "cpp";
+
+    }
+
+
+    if (
+        text.includes("public static void main") ||
+        text.includes("system.out.println") ||
+        text.includes("import java.")
+    ) {
+
+        return "java";
+
+    }
+
+
+    if (
+        text.includes("def ") ||
+        text.includes("import ") ||
+        text.includes("print(")
+    ) {
+
+        return "python";
+
+    }
+
+
+    if (
+        text.includes("console.log") ||
+        text.includes("function ") ||
+        text.includes("const ") ||
+        text.includes("let ")
+    ) {
+
+        return "javascript";
+
+    }
+
+
+    return "unknown";
+
+}
+
+
+// ============================================================
 // CREATE CHATBOT UI
 // ============================================================
 
 function createTutorUI(problem) {
-
-    // --------------------------------------------------------
-    // PREVENT DUPLICATE CHATBOT
-    // --------------------------------------------------------
 
     if (
         document.getElementById(
@@ -788,14 +981,9 @@ function createTutorUI(problem) {
 
                     <br><br>
 
-                    I'll help you solve this
-                    problem through progressive
-                    hints and explanations.
-
-                    <br><br>
-
-                    Start by asking a question
-                    or click <b>💡 Hint</b>.
+                    I can help you with hints,
+                    approaches, and debugging
+                    your code.
 
                 </div>
 
@@ -812,6 +1000,16 @@ function createTutorUI(problem) {
             >
 
                 💡 Hint
+
+            </button>
+
+
+            <button
+                id="dsa-tutor-debug"
+                title="Debug your code"
+            >
+
+                🐞 Debug
 
             </button>
 
@@ -844,7 +1042,7 @@ function createTutorUI(problem) {
 
 
     // ========================================================
-    // CLOSE BUTTON
+    // CLOSE
     // ========================================================
 
     document
@@ -865,7 +1063,7 @@ function createTutorUI(problem) {
 
 
     // ========================================================
-    // SEND BUTTON
+    // SEND
     // ========================================================
 
     document
@@ -908,7 +1106,7 @@ function createTutorUI(problem) {
 
 
     // ========================================================
-    // HINT BUTTON
+    // HINT
     // ========================================================
 
     document
@@ -924,6 +1122,27 @@ function createTutorUI(problem) {
                 addUserMessage(
                     "another hint"
                 );
+
+            }
+
+        );
+
+
+    // ========================================================
+    // DEBUG
+    // ========================================================
+
+    document
+        .getElementById(
+            "dsa-tutor-debug"
+        )
+        .addEventListener(
+
+            "click",
+
+            () => {
+
+                debugCurrentCode();
 
             }
 
@@ -967,12 +1186,44 @@ function createTutorUI(problem) {
 
 
 // ============================================================
-// ADD USER MESSAGE
+// DEBUG CURRENT CODE
 // ============================================================
 
-async function addUserMessage(
-    message
-) {
+async function debugCurrentCode() {
+
+    const code =
+        extractCurrentCode();
+
+
+    // ========================================================
+    // NO CODE FOUND
+    // ========================================================
+
+    if (
+        !code ||
+        !code.trim()
+    ) {
+
+        addBotMessage(
+
+            "I couldn't detect your code from the editor. Please make sure your code is visible in the editor, or paste your code into the chat."
+
+        );
+
+        return;
+
+    }
+
+
+    const language =
+        detectLanguage(
+            code
+        );
+
+
+    // ========================================================
+    // DISPLAY DEBUG REQUEST
+    // ========================================================
 
     const body =
         document.getElementById(
@@ -987,10 +1238,6 @@ async function addUserMessage(
     }
 
 
-    // ========================================================
-    // DISPLAY USER MESSAGE
-    // ========================================================
-
     const userMessage =
         document.createElement(
             "div"
@@ -1002,7 +1249,7 @@ async function addUserMessage(
 
 
     userMessage.innerText =
-        message;
+        "🐞 Debug my code";
 
 
     body.appendChild(
@@ -1028,7 +1275,7 @@ async function addUserMessage(
                 "user",
 
             content:
-                message
+                "Debug my code"
 
         }
 
@@ -1036,7 +1283,7 @@ async function addUserMessage(
 
 
     // ========================================================
-    // LOADING MESSAGE
+    // LOADING
     // ========================================================
 
     const loadingMessage =
@@ -1057,6 +1304,290 @@ async function addUserMessage(
 
         </div>
 
+        <div>
+
+            Analyzing your code...
+
+        </div>
+
+    `;
+
+
+    body.appendChild(
+        loadingMessage
+    );
+
+
+    body.scrollTop =
+        body.scrollHeight;
+
+
+    try {
+
+        // ====================================================
+        // SEND CODE TO BACKEND
+        // ====================================================
+
+        const response =
+            await fetch(
+
+                "http://localhost:5000/api/chat",
+
+                {
+
+                    method:
+                        "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json"
+
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            problem:
+                                currentProblem,
+
+                            history:
+                                pendingHistory,
+
+                            hintLevel:
+                                hintLevel,
+
+                            code:
+                                code,
+
+                            language:
+                                language,
+
+                            debugMode:
+                                true
+
+                        })
+
+                }
+
+            );
+
+
+        if (
+            !response.ok
+        ) {
+
+            const errorData =
+                await response.json()
+                    .catch(
+                        () => null
+                    );
+
+
+            throw new Error(
+
+                errorData?.message ||
+
+                `Server returned ${response.status}`
+
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        loadingMessage.remove();
+
+
+        // ====================================================
+        // BACKEND ERROR
+        // ====================================================
+
+        if (
+            !data.success
+        ) {
+
+            addBotMessage(
+
+                data.message ||
+
+                "Something went wrong."
+
+            );
+
+            return;
+
+        }
+
+
+        // ====================================================
+        // UNRELATED
+        // ====================================================
+
+        if (
+            data.related === false
+        ) {
+
+            addRelevanceWarning(
+
+                data.response
+
+            );
+
+            return;
+
+        }
+
+
+        // ====================================================
+        // SAVE CONVERSATION
+        // ====================================================
+
+        conversationHistory.push({
+
+            role:
+                "user",
+
+            content:
+                "Debug my code"
+
+        });
+
+
+        if (
+            typeof data.hintLevel ===
+            "number"
+        ) {
+
+            hintLevel =
+                data.hintLevel;
+
+        }
+
+
+        addBotMessage(
+            data.response
+        );
+
+
+        conversationHistory.push({
+
+            role:
+                "assistant",
+
+            content:
+                data.response
+
+        });
+
+    }
+
+
+    catch (error) {
+
+        console.error(
+            "Debug error:",
+            error
+        );
+
+
+        loadingMessage.remove();
+
+
+        addBotMessage(
+
+            error.message ||
+
+            "Something went wrong while debugging your code."
+
+        );
+
+    }
+
+}
+
+
+// ============================================================
+// ADD USER MESSAGE
+// ============================================================
+
+async function addUserMessage(
+    message
+) {
+
+    const body =
+        document.getElementById(
+            "dsa-tutor-body"
+        );
+
+
+    if (!body) {
+
+        return;
+
+    }
+
+
+    const userMessage =
+        document.createElement(
+            "div"
+        );
+
+
+    userMessage.className =
+        "dsa-user-message";
+
+
+    userMessage.innerText =
+        message;
+
+
+    body.appendChild(
+        userMessage
+    );
+
+
+    body.scrollTop =
+        body.scrollHeight;
+
+
+    const pendingHistory = [
+
+        ...conversationHistory,
+
+        {
+
+            role:
+                "user",
+
+            content:
+                message
+
+        }
+
+    ];
+
+
+    const loadingMessage =
+        document.createElement(
+            "div"
+        );
+
+
+    loadingMessage.className =
+        "dsa-tutor-message";
+
+
+    loadingMessage.innerHTML = `
+
+        <div class="dsa-bot">
+
+            🤖
+
+        </div>
 
         <div>
 
@@ -1075,10 +1606,6 @@ async function addUserMessage(
     body.scrollTop =
         body.scrollHeight;
 
-
-    // ========================================================
-    // SEND TO BACKEND
-    // ========================================================
 
     try {
 
@@ -1118,10 +1645,6 @@ async function addUserMessage(
             );
 
 
-        // ====================================================
-        // HTTP ERROR
-        // ====================================================
-
         if (
             !response.ok
         ) {
@@ -1148,16 +1671,8 @@ async function addUserMessage(
             await response.json();
 
 
-        // ====================================================
-        // REMOVE LOADING
-        // ====================================================
-
         loadingMessage.remove();
 
-
-        // ====================================================
-        // BACKEND ERROR
-        // ====================================================
 
         if (
             !data.success
@@ -1171,15 +1686,10 @@ async function addUserMessage(
 
             );
 
-
             return;
 
         }
 
-
-        // ====================================================
-        // UNRELATED QUESTION
-        // ====================================================
 
         if (
             data.related === false
@@ -1191,17 +1701,10 @@ async function addUserMessage(
 
             );
 
-
-            // Do NOT save rejected question.
-
             return;
 
         }
 
-
-        // ====================================================
-        // RELATED QUESTION
-        // ====================================================
 
         conversationHistory.push({
 
@@ -1214,10 +1717,6 @@ async function addUserMessage(
         });
 
 
-        // ====================================================
-        // UPDATE HINT LEVEL
-        // ====================================================
-
         if (
             typeof data.hintLevel ===
             "number"
@@ -1229,20 +1728,10 @@ async function addUserMessage(
         }
 
 
-        // ====================================================
-        // DISPLAY RESPONSE
-        // ====================================================
-
         addBotMessage(
-
             data.response
-
         );
 
-
-        // ====================================================
-        // SAVE RESPONSE
-        // ====================================================
 
         conversationHistory.push({
 
@@ -1260,11 +1749,8 @@ async function addUserMessage(
     catch (error) {
 
         console.error(
-
             "Backend error:",
-
             error
-
         );
 
 
@@ -1288,7 +1774,9 @@ async function addUserMessage(
 // ADD BOT MESSAGE
 // ============================================================
 
-function addBotMessage(message) {
+function addBotMessage(
+    message
+) {
 
     const body =
         document.getElementById(
@@ -1333,9 +1821,10 @@ function addBotMessage(message) {
         );
 
 
-    // Render basic Markdown
     messageContent.innerHTML =
-        formatTutorMessage(message);
+        formatTutorMessage(
+            message
+        );
 
 
     messageElement.appendChild(
@@ -1358,7 +1847,14 @@ function addBotMessage(message) {
 
 }
 
-function formatTutorMessage(message) {
+
+// ============================================================
+// FORMAT TUTOR MESSAGE
+// ============================================================
+
+function formatTutorMessage(
+    message
+) {
 
     if (!message) {
 
@@ -1367,13 +1863,13 @@ function formatTutorMessage(message) {
     }
 
 
-    // First escape HTML for safety
-
     let formatted =
-        escapeHtml(message);
+        escapeHtml(
+            message
+        );
 
 
-    // Remove LaTeX block delimiters
+    // Remove LaTeX blocks
 
     formatted =
         formatted.replace(
@@ -1381,8 +1877,6 @@ function formatTutorMessage(message) {
             "$1"
         );
 
-
-    // Remove inline LaTeX delimiters
 
     formatted =
         formatted.replace(
@@ -1398,7 +1892,7 @@ function formatTutorMessage(message) {
         );
 
 
-    // Convert common LaTeX commands
+    // Convert LaTeX text
 
     formatted =
         formatted.replace(
@@ -1421,7 +1915,7 @@ function formatTutorMessage(message) {
         );
 
 
-    // Convert common Markdown bold
+    // Bold Markdown
 
     formatted =
         formatted.replace(
@@ -1430,7 +1924,7 @@ function formatTutorMessage(message) {
         );
 
 
-    // Convert inline code
+    // Inline code
 
     formatted =
         formatted.replace(
@@ -1439,7 +1933,7 @@ function formatTutorMessage(message) {
         );
 
 
-    // Convert new lines
+    // New lines
 
     formatted =
         formatted.replace(
@@ -1454,7 +1948,7 @@ function formatTutorMessage(message) {
 
 
 // ============================================================
-// ADD RELEVANCE WARNING
+// RELEVANCE WARNING
 // ============================================================
 
 function addRelevanceWarning(
@@ -1491,7 +1985,6 @@ function addRelevanceWarning(
             ⚠️
 
         </div>
-
 
         <div>
 
@@ -1539,16 +2032,12 @@ function escapeHtml(
 
 
 // ============================================================
-// LISTEN FOR EXTENSION MESSAGES
+// EXTENSION MESSAGE
 // ============================================================
 
 chrome.runtime.onMessage.addListener(
 
     (message) => {
-
-        // ====================================================
-        // ACTIVATE TUTOR
-        // ====================================================
 
         if (
             message.type ===
@@ -1588,7 +2077,7 @@ chrome.runtime.onMessage.addListener(
 
 
 // ============================================================
-// DETECT PAGE CHANGES
+// PAGE CHANGE DETECTION
 // ============================================================
 
 let lastKnownUrl =
@@ -1613,9 +2102,7 @@ setInterval(
 
 
             console.log(
-
                 "Problem page changed. Re-extracting problem."
-
             );
 
 
@@ -1629,17 +2116,9 @@ setInterval(
                     newProblem;
 
 
-                // ------------------------------------------------
-                // RESET CONVERSATION
-                // ------------------------------------------------
-
                 conversationHistory =
                     [];
 
-
-                // ------------------------------------------------
-                // RESET HINT LEVEL
-                // ------------------------------------------------
 
                 hintLevel =
                     0;
@@ -1649,10 +2128,6 @@ setInterval(
                     newProblem
                 );
 
-
-                // ------------------------------------------------
-                // UPDATE CHATBOT TITLE
-                // ------------------------------------------------
 
                 const titleElement =
                     document.getElementById(

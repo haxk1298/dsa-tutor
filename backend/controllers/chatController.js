@@ -1,5 +1,6 @@
 // ============================================================
 // DSA TUTOR - CHAT CONTROLLER
+// PHASE 5 - CODE DEBUGGING
 // ============================================================
 
 
@@ -32,7 +33,13 @@ async function chatWithTutor(req, res) {
 
             history = [],
 
-            hintLevel = 0
+            hintLevel = 0,
+
+            code = "",
+
+            language = "unknown",
+
+            debugMode = false
 
         } = req.body;
 
@@ -137,7 +144,7 @@ async function chatWithTutor(req, res) {
                 related: false,
 
                 response:
-                    "I'm currently focused on this DSA problem. Ask me something related to the problem, its approach, complexity, debugging, or your code."
+                    "I'm currently focused on this DSA problem. Ask me something related to the problem, your approach, your code, debugging, complexity, or hints."
 
             });
 
@@ -165,7 +172,7 @@ async function chatWithTutor(req, res) {
 
 
         // ====================================================
-        // GENERATE TUTOR RESPONSE
+        // GENERATE RESPONSE
         // ====================================================
 
         const answer =
@@ -176,7 +183,13 @@ async function chatWithTutor(req, res) {
                 history,
 
                 hintLevel:
-                    requestedHintLevel
+                    requestedHintLevel,
+
+                code,
+
+                language,
+
+                debugMode
 
             });
 
@@ -211,7 +224,7 @@ async function chatWithTutor(req, res) {
 
 
         // ====================================================
-        // GEMINI TEMPORARILY UNAVAILABLE
+        // TEMPORARY GEMINI ERROR
         // ====================================================
 
         if (

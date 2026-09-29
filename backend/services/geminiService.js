@@ -1,5 +1,6 @@
 // ============================================================
 // DSA TUTOR - GEMINI SERVICE
+// PHASE 5 - CODE DEBUGGING
 // ============================================================
 
 
@@ -64,9 +65,7 @@ async function generateWithRetry(
         try {
 
             console.log(
-
                 `Gemini request using ${model} - attempt ${attempt}`
-
             );
 
 
@@ -98,10 +97,6 @@ async function generateWithRetry(
             );
 
 
-            // ----------------------------------------------
-            // RETRYABLE ERRORS
-            // ----------------------------------------------
-
             const retryable =
 
                 error.status === 503 ||
@@ -112,11 +107,8 @@ async function generateWithRetry(
 
 
             if (
-
                 !retryable ||
-
                 attempt === maxRetries
-
             ) {
 
                 throw error;
@@ -125,22 +117,16 @@ async function generateWithRetry(
 
 
             console.log(
-
                 `Retrying in ${delay}ms...`
-
             );
 
 
             await new Promise(
 
                 resolve =>
-
                     setTimeout(
-
                         resolve,
-
                         delay
-
                     )
 
             );
@@ -165,22 +151,109 @@ async function generateTutorResponse({
 
     history,
 
-    hintLevel = 0
+    hintLevel = 0,
+
+    code = "",
+
+    language = "unknown",
+
+    debugMode = false
 
 }) {
 
 
     // ========================================================
-    // GET HINT INSTRUCTION
+    // HINT INSTRUCTION
     // ========================================================
 
     const hintInstruction =
-
         getHintInstruction(
-
             hintLevel
-
         );
+
+
+    // ========================================================
+    // CODE DEBUGGING INSTRUCTION
+    // ========================================================
+
+    let codeInstruction = "";
+
+
+    if (
+        debugMode &&
+        code
+    ) {
+
+        codeInstruction = `
+
+============================================================
+CODE DEBUGGING MODE
+============================================================
+
+The student has provided code for the current problem.
+
+Programming language:
+${language}
+
+STUDENT CODE:
+
+---------------- CODE START ----------------
+
+${code}
+
+----------------- CODE END -----------------
+
+
+DEBUGGING RULES
+
+1. Analyze the student's actual code.
+
+2. Do not assume that the code is correct.
+
+3. Identify syntax errors if present.
+
+4. Identify compilation errors if they are apparent.
+
+5. Identify logical errors.
+
+6. Identify incorrect assumptions.
+
+7. Check boundary cases.
+
+8. Check whether the algorithm actually solves
+   the current problem.
+
+9. Check time complexity.
+
+10. Check space complexity.
+
+11. Point to the relevant part of the code
+    when explaining a problem.
+
+12. Explain WHY the issue occurs.
+
+13. Prefer guiding the student toward the fix.
+
+14. Do not immediately rewrite the entire code.
+
+15. Only provide a complete corrected implementation
+    when the current hint level permits it or the
+    student explicitly reaches the complete-solution level.
+
+When possible, structure debugging responses as:
+
+Issue:
+What is wrong.
+
+Why:
+Why the issue causes a problem.
+
+Hint:
+What the student should change or think about.
+
+`;
+
+    }
 
 
     // ========================================================
@@ -251,7 +324,7 @@ GENERAL RULES
 
 11. Do not use LaTeX formatting.
 
-12. Do not use $...$, $$...$$, \(...\), or \[...\].
+12. Do not use $...$, $$...$$, \\(...\\), or \\[...\\].
 
 13. Write mathematical expressions in plain text.
 
@@ -261,7 +334,7 @@ GENERAL RULES
 
     instead of:
 
-    $$\text{complement} = \text{target} - \text{current_num}$$
+    $$\\text{complement} = \\text{target} - \\text{current_num}$$
 
 15. Use simple Markdown only when useful.
 
@@ -269,8 +342,6 @@ GENERAL RULES
 ============================================================
 CURRENT HINT LEVEL
 ============================================================
-
-The backend has assigned:
 
 Hint Level: ${hintLevel}
 
@@ -291,19 +362,31 @@ Follow the current hint level strictly.
 Do NOT intentionally reveal information belonging
 to a higher hint level.
 
-For example:
+At Level 0:
+Give a guiding question.
 
-- At Level 0, do not directly reveal the algorithm.
-- At Level 1, do not give the complete algorithm.
-- At Level 2, do not give complete implementation code.
-- At Level 3, explain the approach but avoid code.
-- At Level 4, give pseudocode but not full implementation.
-- At Level 5, complete implementation is allowed.
+At Level 1:
+Give a conceptual observation.
+
+At Level 2:
+Give an algorithm or data structure clue.
+
+At Level 3:
+Explain the detailed approach without full code.
+
+At Level 4:
+Give pseudocode without full implementation.
+
+At Level 5:
+A complete implementation is allowed.
+
+${codeInstruction}
 
 The application has already checked that the
 user's question is related to this problem.
 
 Now answer the user's question.
+
 `;
 
 
@@ -355,7 +438,7 @@ Now answer the user's question.
 
             temperature: 0.4,
 
-            maxOutputTokens: 700
+            maxOutputTokens: 900
 
         }
 
@@ -369,7 +452,6 @@ Now answer the user's question.
     try {
 
         const response =
-
             await generateWithRetry(
 
                 PRIMARY_MODEL,
@@ -389,9 +471,7 @@ Now answer the user's question.
     catch (primaryError) {
 
         console.error(
-
             `Primary model ${PRIMARY_MODEL} failed.`
-
         );
 
 
@@ -402,14 +482,11 @@ Now answer the user's question.
         try {
 
             console.log(
-
                 `Trying fallback model: ${FALLBACK_MODEL}`
-
             );
 
 
             const response =
-
                 await generateWithRetry(
 
                     FALLBACK_MODEL,
@@ -429,11 +506,8 @@ Now answer the user's question.
         catch (fallbackError) {
 
             console.error(
-
                 "Fallback model also failed:",
-
                 fallbackError
-
             );
 
 

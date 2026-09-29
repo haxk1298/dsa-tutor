@@ -10,9 +10,9 @@
 
     right: 20px;
 
-    width: 360px;
+    width: 380px;
 
-    height: 520px;
+    height: 540px;
 
     z-index: 999999;
 
@@ -237,6 +237,28 @@
 
 
 /* ============================================================
+   CODE FORMATTING
+   ============================================================ */
+
+.dsa-tutor-message code {
+
+    padding: 2px 5px;
+
+    background: #f3f4f6;
+
+    border-radius: 4px;
+
+    font-family:
+        Consolas,
+        "Courier New",
+        monospace;
+
+    font-size: 12px;
+
+}
+
+
+/* ============================================================
    RELEVANCE WARNING
    ============================================================ */
 
@@ -284,7 +306,7 @@
 
     align-items: center;
 
-    gap: 6px;
+    gap: 5px;
 
     padding: 10px;
 
@@ -326,38 +348,6 @@
 
 
 /* ============================================================
-   SEND BUTTON
-   ============================================================ */
-
-#dsa-tutor-send {
-
-    width: 36px;
-
-    height: 36px;
-
-    border: none;
-
-    border-radius: 8px;
-
-    background: #111827;
-
-    color: #ffffff;
-
-    cursor: pointer;
-
-    font-size: 16px;
-
-}
-
-
-#dsa-tutor-send:hover {
-
-    background: #374151;
-
-}
-
-
-/* ============================================================
    HINT BUTTON
    ============================================================ */
 
@@ -365,7 +355,7 @@
 
     height: 36px;
 
-    padding: 0 9px;
+    padding: 0 8px;
 
     border: 1px solid #d1d5db;
 
@@ -389,5 +379,75 @@
 #dsa-tutor-hint:hover {
 
     background: #e5e7eb;
+
+}
+
+
+/* ============================================================
+   DEBUG BUTTON
+   ============================================================ */
+
+#dsa-tutor-debug {
+
+    height: 36px;
+
+    padding: 0 8px;
+
+    border: 1px solid #d1d5db;
+
+    border-radius: 8px;
+
+    background: #fef2f2;
+
+    color: #991b1b;
+
+    cursor: pointer;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    white-space: nowrap;
+
+}
+
+
+#dsa-tutor-debug:hover {
+
+    background: #fee2e2;
+
+}
+
+
+/* ============================================================
+   SEND BUTTON
+   ============================================================ */
+
+#dsa-tutor-send {
+
+    width: 36px;
+
+    height: 36px;
+
+    flex-shrink: 0;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: #111827;
+
+    color: #ffffff;
+
+    cursor: pointer;
+
+    font-size: 16px;
+
+}
+
+
+#dsa-tutor-send:hover {
+
+    background: #374151;
 
 }
