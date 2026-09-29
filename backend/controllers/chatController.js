@@ -1,12 +1,16 @@
 const {
-    GoogleGenAI
-} = require("@google/genai");
+    checkRelevance
+} = require("../services/relevanceService");
 
 
-const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY
-});
+const {
+    generateTutorResponse
+} = require("../services/geminiService");
 
+
+// -----------------------------------------
+// Chat controller
+// -----------------------------------------
 
 async function chatWithTutor(req, res) {
 
@@ -18,9 +22,9 @@ async function chatWithTutor(req, res) {
         } = req.body;
 
 
-        // -----------------------------
-        // Validate request
-        // -----------------------------
+        // ---------------------------------
+        // Validate problem
+        // ---------------------------------
 
         if (!problem) {
 
@@ -36,7 +40,14 @@ async function chatWithTutor(req, res) {
         }
 
 
-        if (!history || history.length === 0) {
+        // ---------------------------------
+        // Validate history
+        // ---------------------------------
+
+        if (
+            !history ||
+            history.length === 0
+        ) {
 
             return res.status(400).json({
 
@@ -50,151 +61,101 @@ async function chatWithTutor(req, res) {
         }
 
 
-        // -----------------------------
-        // Tutor instructions
-        // -----------------------------
+        // ---------------------------------
+        // Get latest user message
+        // ---------------------------------
 
-        const systemInstruction = `
-
-You are DSA Tutor.
-
-You are an AI tutor that helps students
-solve Data Structures and Algorithms problems.
-
-Your goal is to help the student THINK,
-not immediately give them the solution.
+        const latestMessage =
+            [...history]
+                .reverse()
+                .find(
+                    message =>
+                        message.role === "user"
+                );
 
 
-CURRENT PROBLEM
+        if (!latestMessage) {
 
-Platform:
-${problem.platform}
+            return res.status(400).json({
 
-Title:
-${problem.title}
+                success: false,
 
-Problem Description:
-${problem.description}
+                message:
+                    "User message not found."
 
-Constraints:
-${problem.constraints || "Not provided"}
+            });
 
-Examples:
-${problem.examples || "Not provided"}
+        }
 
 
-RULES
+        // ---------------------------------
+        // STEP 1
+        // Check relevance
+        // ---------------------------------
 
-1. You are currently helping the student
-   with ONLY this problem.
+        const relevance =
+            await checkRelevance({
 
-2. Do not answer unrelated questions.
+                problem,
 
-3. If the user asks something unrelated,
-   politely tell them that you are currently
-   focused on this DSA problem.
-
-4. Do not immediately give the complete solution.
-
-5. Prefer explanations, questions and hints.
-
-6. Help the student reason about the problem.
-
-7. Analyze the constraints when useful.
-
-8. Explain time and space complexity when relevant.
-
-9. If the student proposes an approach,
-   analyze that approach.
-
-10. Do not immediately replace the student's
-    approach with another solution.
-
-11. If the student is stuck, give a useful
-    conceptual hint.
-
-12. Do not invent constraints.
-
-13. Do not invent examples.
-
-14. When the student provides code,
-    help identify the conceptual or implementation
-    issue instead of immediately rewriting
-    the entire solution.
-
-15. Keep responses concise.
-
-Remember:
-
-You are a DSA TUTOR,
-not a solution generator.
-
-`;
-
-
-        // -----------------------------
-        // Convert our history
-        // to Gemini format
-        // -----------------------------
-
-        const contents = history.map(
-            (message) => {
-
-                return {
-
-                    role:
-                        message.role === "assistant"
-                            ? "model"
-                            : "user",
-
-                    parts: [
-                        {
-                            text: message.content
-                        }
-                    ]
-
-                };
-
-            }
-        );
-
-
-        // -----------------------------
-        // Gemini API call
-        // -----------------------------
-
-        const response =
-            await ai.models.generateContent({
-
-                model: "gemini-3.8-flash",
-
-                contents: contents,
-
-                config: {
-
-                    systemInstruction:
-                        systemInstruction,
-
-                    temperature: 0.4,
-
-                    maxOutputTokens: 500
-
-                }
+                message:
+                    latestMessage.content
 
             });
 
 
+        console.log(
+            "Relevance:",
+            relevance
+        );
+
+
+        // ---------------------------------
+        // STEP 2
+        // Reject unrelated question
+        // ---------------------------------
+
+        if (!relevance.related) {
+
+            return res.json({
+
+                success: true,
+
+                related: false,
+
+                response:
+                    "I'm currently focused on this DSA problem. Ask me something related to the problem, its approach, complexity, debugging, or your code."
+
+            });
+
+        }
+
+
+        // ---------------------------------
+        // STEP 3
+        // Generate tutor response
+        // ---------------------------------
+
         const answer =
-            response.text;
+            await generateTutorResponse({
+
+                problem,
+
+                history
+
+            });
 
 
-        // -----------------------------
-        // Send response
-        // -----------------------------
+        // ---------------------------------
+        // STEP 4
+        // Return response
+        // ---------------------------------
 
         return res.json({
 
             success: true,
+
+            related: true,
 
             response: answer
 
@@ -202,10 +163,11 @@ not a solution generator.
 
     }
 
+
     catch (error) {
 
         console.error(
-            "Gemini API Error:",
+            "Chat controller error:",
             error
         );
 
@@ -215,7 +177,7 @@ not a solution generator.
             success: false,
 
             message:
-                "Unable to get response from Gemini."
+                "Something went wrong while processing your question."
 
         });
 
