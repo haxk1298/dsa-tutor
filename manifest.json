@@ -16,7 +16,7 @@
     "host_permissions": [
         "https://leetcode.com/*",
         "https://codeforces.com/*",
-        "http://localhost:5000/*"
+        "https://dsa-tutor-backend.onrender.com/*"
     ],
 
     "background": {

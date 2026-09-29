@@ -297,7 +297,7 @@ async function saveCurrentSession() {
 
         const response =
             await fetch(
-                "http://localhost:5000/api/sessions",
+                "https://dsa-tutor-backend.onrender.com/api/sessions",
                 {
 
                     method: "POST",
@@ -539,7 +539,7 @@ async function loadCurrentSession(
         const response =
             await fetch(
 
-                `http://localhost:5000/api/sessions/${encodeURIComponent(problemKey)}`,
+                `https://dsa-tutor-backend.onrender.com/api/sessions/${encodeURIComponent(problemKey)}`,
 
                 {
 
@@ -691,7 +691,7 @@ async function deleteCurrentSession() {
         const response =
             await fetch(
 
-                `http://localhost:5000/api/sessions/${encodeURIComponent(problemKey)}`,
+                `https://dsa-tutor-backend.onrender.com/api/sessions/${encodeURIComponent(problemKey)}`,
 
                 {
 
@@ -2173,7 +2173,7 @@ async function addUserMessage(
         const response =
             await fetch(
 
-                "http://localhost:5000/api/chat",
+                "https://dsa-tutor-backend.onrender.com/api/chat",
 
                 {
 
@@ -2492,7 +2492,7 @@ async function debugCurrentCode() {
         const response =
             await fetch(
 
-                "http://localhost:5000/api/chat",
+                "https://dsa-tutor-backend.onrender.com/api/chat",
 
                 {
 

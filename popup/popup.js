@@ -4,7 +4,7 @@
 
 
 const API_URL =
-    "http://localhost:5000";
+    "https://dsa-tutor-backend.onrender.com";
 
 
 // ============================================================
