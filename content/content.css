@@ -1,29 +1,32 @@
-#dsa-tutor-root {
-    font-family: Arial, sans-serif;
-}
+/* ============================================================
+   DSA TUTOR
+   ============================================================ */
 
 #dsa-tutor-container {
 
     position: fixed;
 
     top: 80px;
+
     right: 20px;
 
-    width: 380px;
-    height: 560px;
+    width: 360px;
 
-    background: white;
+    height: 520px;
 
-    border: 1px solid #e5e7eb;
+    z-index: 999999;
+
+    background: #ffffff;
+
+    border: 1px solid #d1d5db;
 
     border-radius: 14px;
 
     box-shadow:
         0 10px 30px rgba(0, 0, 0, 0.15);
 
-    z-index: 2147483647;
-
     display: flex;
+
     flex-direction: column;
 
     overflow: hidden;
@@ -34,36 +37,48 @@
         sans-serif;
 
     color: #111827;
+
 }
 
 
-/* HEADER */
+/* ============================================================
+   HEADER
+   ============================================================ */
 
 #dsa-tutor-header {
 
-    height: 65px;
-
-    padding: 12px 15px;
-
-    background: #111827;
-    color: white;
-
     display: flex;
 
-    justify-content: space-between;
     align-items: center;
+
+    justify-content: space-between;
+
+    padding: 12px 14px;
+
+    background: #111827;
+
+    color: #ffffff;
+
+}
+
+
+#dsa-tutor-header strong {
+
+    font-size: 15px;
+
 }
 
 
 #dsa-tutor-platform {
 
-    margin-top: 4px;
+    margin-top: 2px;
 
     font-size: 11px;
 
-    color: #d1d5db;
+    opacity: 0.7;
 
     text-transform: uppercase;
+
 }
 
 
@@ -73,133 +88,216 @@
 
     background: transparent;
 
-    color: white;
+    color: #ffffff;
 
-    font-size: 24px;
+    font-size: 22px;
 
     cursor: pointer;
+
+    line-height: 1;
+
 }
 
 
-/* BODY */
+/* ============================================================
+   BODY
+   ============================================================ */
 
 #dsa-tutor-body {
 
     flex: 1;
 
-    padding: 15px;
+    padding: 12px;
 
     overflow-y: auto;
 
     background: #f9fafb;
+
 }
 
 
+/* ============================================================
+   CURRENT PROBLEM
+   ============================================================ */
+
 .dsa-tutor-problem {
 
-    padding: 12px;
+    margin-bottom: 14px;
 
-    background: white;
+    padding: 10px;
+
+    background: #ffffff;
 
     border: 1px solid #e5e7eb;
 
     border-radius: 10px;
 
-    margin-bottom: 15px;
 }
 
 
 .dsa-label {
 
+    margin-bottom: 5px;
+
     font-size: 10px;
 
-    font-weight: bold;
+    font-weight: 700;
 
     color: #6b7280;
 
-    margin-bottom: 5px;
+    letter-spacing: 0.5px;
+
 }
 
 
 #dsa-tutor-title {
 
-    font-size: 15px;
+    font-size: 14px;
 
     font-weight: 600;
+
+    line-height: 1.4;
+
 }
 
 
-/* BOT MESSAGE */
+/* ============================================================
+   BOT MESSAGE
+   ============================================================ */
 
 .dsa-tutor-message {
 
     display: flex;
 
+    align-items: flex-start;
+
     gap: 8px;
 
     margin-bottom: 12px;
 
     padding: 10px;
 
-    background: white;
-
-    border-radius: 10px;
+    background: #ffffff;
 
     border: 1px solid #e5e7eb;
+
+    border-radius: 10px;
 
     font-size: 13px;
 
     line-height: 1.5;
+
 }
 
 
 .dsa-bot {
 
-    font-size: 18px;
-
     flex-shrink: 0;
+
+    width: 24px;
+
+    height: 24px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
 }
 
 
-/* USER MESSAGE */
+/* ============================================================
+   USER MESSAGE
+   ============================================================ */
 
 .dsa-user-message {
 
-    margin-left: 35px;
+    max-width: 85%;
+
+    margin-left: auto;
 
     margin-bottom: 12px;
 
-    padding: 10px;
+    padding: 9px 11px;
 
-    background: #2563eb;
+    background: #111827;
 
-    color: white;
+    color: #ffffff;
 
     border-radius: 10px;
 
     font-size: 13px;
 
     line-height: 1.5;
+
+    word-wrap: break-word;
+
 }
 
 
-/* FOOTER */
+/* ============================================================
+   RELEVANCE WARNING
+   ============================================================ */
 
-#dsa-tutor-footer {
-
-    height: 60px;
-
-    padding: 10px;
+.dsa-relevance-warning {
 
     display: flex;
 
     gap: 8px;
 
-    background: white;
+    align-items: flex-start;
 
-    border-top: 1px solid #e5e7eb;
+    margin-bottom: 12px;
+
+    padding: 10px;
+
+    background: #fff7ed;
+
+    border: 1px solid #fed7aa;
+
+    border-radius: 10px;
+
+    color: #9a3412;
+
+    font-size: 13px;
+
+    line-height: 1.5;
+
 }
 
+
+.dsa-warning-icon {
+
+    flex-shrink: 0;
+
+}
+
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+#dsa-tutor-footer {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    padding: 10px;
+
+    background: #ffffff;
+
+    border-top: 1px solid #e5e7eb;
+
+}
+
+
+/* ============================================================
+   INPUT
+   ============================================================ */
 
 #dsa-tutor-input {
 
@@ -207,59 +305,89 @@
 
     min-width: 0;
 
+    padding: 9px 10px;
+
     border: 1px solid #d1d5db;
 
     border-radius: 8px;
 
-    padding: 8px 10px;
-
     outline: none;
 
     font-size: 13px;
+
 }
 
 
 #dsa-tutor-input:focus {
 
-    border-color: #2563eb;
+    border-color: #6b7280;
+
 }
 
 
+/* ============================================================
+   SEND BUTTON
+   ============================================================ */
+
 #dsa-tutor-send {
 
-    width: 38px;
+    width: 36px;
+
+    height: 36px;
 
     border: none;
 
     border-radius: 8px;
 
-    background: #2563eb;
+    background: #111827;
 
-    color: white;
+    color: #ffffff;
 
     cursor: pointer;
 
     font-size: 16px;
+
 }
 
-.dsa-relevance-warning {
-    display: flex;
-    gap: 8px;
-    align-items: flex-start;
 
-    margin-bottom: 12px;
-    padding: 10px;
+#dsa-tutor-send:hover {
 
-    background: #fff7ed;
-    border: 1px solid #fed7aa;
-    border-radius: 10px;
+    background: #374151;
 
-    color: #9a3412;
-
-    font-size: 13px;
-    line-height: 1.5;
 }
 
-.dsa-warning-icon {
-    flex-shrink: 0;
+
+/* ============================================================
+   HINT BUTTON
+   ============================================================ */
+
+#dsa-tutor-hint {
+
+    height: 36px;
+
+    padding: 0 9px;
+
+    border: 1px solid #d1d5db;
+
+    border-radius: 8px;
+
+    background: #f3f4f6;
+
+    color: #374151;
+
+    cursor: pointer;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    white-space: nowrap;
+
+}
+
+
+#dsa-tutor-hint:hover {
+
+    background: #e5e7eb;
+
 }

@@ -1,12 +1,41 @@
-const { GoogleGenAI } = require("@google/genai");
+// ============================================================
+// DSA TUTOR - GEMINI SERVICE
+// ============================================================
 
-const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY
-});
 
-const PRIMARY_MODEL = "gemini-3.5-flash";
+const {
+    GoogleGenAI
+} = require("@google/genai");
 
-const FALLBACK_MODEL = "gemini-3.1-flash-lite";
+
+const {
+    getHintInstruction
+} = require("./hintService");
+
+
+// ============================================================
+// GEMINI CLIENT
+// ============================================================
+
+const ai =
+    new GoogleGenAI({
+
+        apiKey:
+            process.env.GEMINI_API_KEY
+
+    });
+
+
+// ============================================================
+// MODELS
+// ============================================================
+
+const PRIMARY_MODEL =
+    "gemini-3.5-flash";
+
+
+const FALLBACK_MODEL =
+    "gemini-3.1-flash-lite";
 
 
 // ============================================================
@@ -14,12 +43,17 @@ const FALLBACK_MODEL = "gemini-3.1-flash-lite";
 // ============================================================
 
 async function generateWithRetry(
+
     model,
+
     request,
+
     maxRetries = 3
+
 ) {
 
     let delay = 1000;
+
 
     for (
         let attempt = 1;
@@ -30,8 +64,11 @@ async function generateWithRetry(
         try {
 
             console.log(
+
                 `Gemini request using ${model} - attempt ${attempt}`
+
             );
+
 
             return await ai.models.generateContent({
 
@@ -47,28 +84,39 @@ async function generateWithRetry(
 
         }
 
+
         catch (error) {
 
             console.error(
+
                 `Gemini ${model} attempt ${attempt} failed:`,
+
                 error.status,
+
                 error.message
+
             );
 
 
-            // ------------------------------------------------
-            // Only retry temporary server errors
-            // ------------------------------------------------
+            // ----------------------------------------------
+            // RETRYABLE ERRORS
+            // ----------------------------------------------
 
             const retryable =
+
                 error.status === 503 ||
+
                 error.status === 429 ||
+
                 error.status === 500;
 
 
             if (
+
                 !retryable ||
+
                 attempt === maxRetries
+
             ) {
 
                 throw error;
@@ -77,16 +125,24 @@ async function generateWithRetry(
 
 
             console.log(
+
                 `Retrying in ${delay}ms...`
+
             );
 
 
             await new Promise(
+
                 resolve =>
+
                     setTimeout(
+
                         resolve,
+
                         delay
+
                     )
+
             );
 
 
@@ -104,17 +160,44 @@ async function generateWithRetry(
 // ============================================================
 
 async function generateTutorResponse({
+
     problem,
-    history
+
+    history,
+
+    hintLevel = 0
+
 }) {
 
+
+    // ========================================================
+    // GET HINT INSTRUCTION
+    // ========================================================
+
+    const hintInstruction =
+
+        getHintInstruction(
+
+            hintLevel
+
+        );
+
+
+    // ========================================================
+    // SYSTEM INSTRUCTION
+    // ========================================================
+
     const systemInstruction = `
+
 You are DSA Tutor.
 
 You are helping a student solve ONE specific
 Data Structures and Algorithms problem.
 
+
+============================================================
 CURRENT PROBLEM
+============================================================
 
 Platform:
 ${problem.platform}
@@ -131,24 +214,91 @@ ${problem.constraints || "Not provided"}
 Examples:
 ${problem.examples || "Not provided"}
 
+
+============================================================
 YOUR ROLE
+============================================================
 
 Help the student understand and solve the problem.
 
-You are a tutor, not a solution generator.
+You are a tutor, not merely a solution generator.
 
-RULES
+
+============================================================
+GENERAL RULES
+============================================================
 
 1. Stay focused on the current problem.
+
 2. Help the student reason about the problem.
-3. Prefer hints and guiding questions.
-4. Do not immediately give the complete solution.
-5. Analyze the student's proposed approach.
-6. Explain complexity when relevant.
-7. Help debug code when code is provided.
-8. Do not invent constraints.
-9. Do not invent examples.
-10. Keep the response concise and educational.
+
+3. Prefer progressive guidance.
+
+4. Do not invent constraints.
+
+5. Do not invent examples.
+
+6. Keep responses concise and educational.
+
+7. Analyze the student's proposed approach.
+
+8. Explain time and space complexity when relevant.
+
+9. Help debug code when code is provided.
+
+10. Never assume information that is not present
+    in the problem or conversation.
+
+11. Do not use LaTeX formatting.
+
+12. Do not use $...$, $$...$$, \(...\), or \[...\].
+
+13. Write mathematical expressions in plain text.
+
+14. For example, write:
+
+    complement = target - current_num
+
+    instead of:
+
+    $$\text{complement} = \text{target} - \text{current_num}$$
+
+15. Use simple Markdown only when useful.
+
+
+============================================================
+CURRENT HINT LEVEL
+============================================================
+
+The backend has assigned:
+
+Hint Level: ${hintLevel}
+
+
+============================================================
+HINT LEVEL INSTRUCTION
+============================================================
+
+${hintInstruction}
+
+
+============================================================
+IMPORTANT
+============================================================
+
+Follow the current hint level strictly.
+
+Do NOT intentionally reveal information belonging
+to a higher hint level.
+
+For example:
+
+- At Level 0, do not directly reveal the algorithm.
+- At Level 1, do not give the complete algorithm.
+- At Level 2, do not give complete implementation code.
+- At Level 3, explain the approach but avoid code.
+- At Level 4, give pseudocode but not full implementation.
+- At Level 5, complete implementation is allowed.
 
 The application has already checked that the
 user's question is related to this problem.
@@ -157,25 +307,43 @@ Now answer the user's question.
 `;
 
 
+    // ========================================================
+    // CONVERSATION HISTORY
+    // ========================================================
+
     const contents =
+
         history.map(
+
             message => ({
 
                 role:
+
                     message.role === "assistant"
+
                         ? "model"
+
                         : "user",
 
                 parts: [
+
                     {
+
                         text:
                             message.content
+
                     }
+
                 ]
 
             })
+
         );
 
+
+    // ========================================================
+    // REQUEST
+    // ========================================================
 
     const request = {
 
@@ -185,7 +353,9 @@ Now answer the user's question.
 
             systemInstruction,
 
-            maxOutputTokens: 500
+            temperature: 0.4,
+
+            maxOutputTokens: 700
 
         }
 
@@ -193,17 +363,23 @@ Now answer the user's question.
 
 
     // ========================================================
-    // TRY PRIMARY MODEL
+    // PRIMARY MODEL
     // ========================================================
 
     try {
 
         const response =
+
             await generateWithRetry(
+
                 PRIMARY_MODEL,
+
                 request,
+
                 3
+
             );
+
 
         return response.text;
 
@@ -213,7 +389,9 @@ Now answer the user's question.
     catch (primaryError) {
 
         console.error(
+
             `Primary model ${PRIMARY_MODEL} failed.`
+
         );
 
 
@@ -224,15 +402,22 @@ Now answer the user's question.
         try {
 
             console.log(
+
                 `Trying fallback model: ${FALLBACK_MODEL}`
+
             );
 
 
             const response =
+
                 await generateWithRetry(
+
                     FALLBACK_MODEL,
+
                     request,
+
                     2
+
                 );
 
 
@@ -244,8 +429,11 @@ Now answer the user's question.
         catch (fallbackError) {
 
             console.error(
+
                 "Fallback model also failed:",
+
                 fallbackError
+
             );
 
 
@@ -258,6 +446,12 @@ Now answer the user's question.
 }
 
 
+// ============================================================
+// EXPORT
+// ============================================================
+
 module.exports = {
+
     generateTutorResponse
+
 };

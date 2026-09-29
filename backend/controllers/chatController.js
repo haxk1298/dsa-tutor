@@ -1,3 +1,8 @@
+// ============================================================
+// DSA TUTOR - CHAT CONTROLLER
+// ============================================================
+
+
 const {
     checkRelevance
 } = require("../services/relevanceService");
@@ -8,23 +13,33 @@ const {
 } = require("../services/geminiService");
 
 
-// -----------------------------------------
-// Chat controller
-// -----------------------------------------
+const {
+    determineHintLevel
+} = require("../services/hintService");
+
+
+// ============================================================
+// CHAT WITH TUTOR
+// ============================================================
 
 async function chatWithTutor(req, res) {
 
     try {
 
         const {
+
             problem,
-            history = []
+
+            history = [],
+
+            hintLevel = 0
+
         } = req.body;
 
 
-        // ---------------------------------
-        // Validate problem
-        // ---------------------------------
+        // ====================================================
+        // VALIDATE PROBLEM
+        // ====================================================
 
         if (!problem) {
 
@@ -40,9 +55,9 @@ async function chatWithTutor(req, res) {
         }
 
 
-        // ---------------------------------
-        // Validate history
-        // ---------------------------------
+        // ====================================================
+        // VALIDATE HISTORY
+        // ====================================================
 
         if (
             !history ||
@@ -61,9 +76,9 @@ async function chatWithTutor(req, res) {
         }
 
 
-        // ---------------------------------
-        // Get latest user message
-        // ---------------------------------
+        // ====================================================
+        // FIND LATEST USER MESSAGE
+        // ====================================================
 
         const latestMessage =
             [...history]
@@ -88,10 +103,9 @@ async function chatWithTutor(req, res) {
         }
 
 
-        // ---------------------------------
-        // STEP 1
-        // Check relevance
-        // ---------------------------------
+        // ====================================================
+        // RELEVANCE CHECK
+        // ====================================================
 
         const relevance =
             await checkRelevance({
@@ -110,10 +124,9 @@ async function chatWithTutor(req, res) {
         );
 
 
-        // ---------------------------------
-        // STEP 2
-        // Reject unrelated question
-        // ---------------------------------
+        // ====================================================
+        // REJECT UNRELATED QUESTION
+        // ====================================================
 
         if (!relevance.related) {
 
@@ -131,25 +144,46 @@ async function chatWithTutor(req, res) {
         }
 
 
-        // ---------------------------------
-        // STEP 3
-        // Generate tutor response
-        // ---------------------------------
+        // ====================================================
+        // DETERMINE HINT LEVEL
+        // ====================================================
+
+        const requestedHintLevel =
+            determineHintLevel(
+
+                latestMessage.content,
+
+                hintLevel
+
+            );
+
+
+        console.log(
+            "Hint level:",
+            requestedHintLevel
+        );
+
+
+        // ====================================================
+        // GENERATE TUTOR RESPONSE
+        // ====================================================
 
         const answer =
             await generateTutorResponse({
 
                 problem,
 
-                history
+                history,
+
+                hintLevel:
+                    requestedHintLevel
 
             });
 
 
-        // ---------------------------------
-        // STEP 4
-        // Return response
-        // ---------------------------------
+        // ====================================================
+        // SEND RESPONSE
+        // ====================================================
 
         return res.json({
 
@@ -157,7 +191,11 @@ async function chatWithTutor(req, res) {
 
             related: true,
 
-            response: answer
+            response:
+                answer,
+
+            hintLevel:
+                requestedHintLevel
 
         });
 
@@ -171,6 +209,31 @@ async function chatWithTutor(req, res) {
             error
         );
 
+
+        // ====================================================
+        // GEMINI TEMPORARILY UNAVAILABLE
+        // ====================================================
+
+        if (
+            error.status === 503 ||
+            error.status === 429
+        ) {
+
+            return res.status(503).json({
+
+                success: false,
+
+                message:
+                    "The AI service is temporarily busy. Please try again in a moment."
+
+            });
+
+        }
+
+
+        // ====================================================
+        // GENERAL ERROR
+        // ====================================================
 
         return res.status(500).json({
 
@@ -186,6 +249,12 @@ async function chatWithTutor(req, res) {
 }
 
 
+// ============================================================
+// EXPORT
+// ============================================================
+
 module.exports = {
+
     chatWithTutor
+
 };

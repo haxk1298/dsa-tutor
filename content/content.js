@@ -9,6 +9,8 @@ let currentProblem = null;
 
 let conversationHistory = [];
 
+let hintLevel = 0;
+
 
 // ============================================================
 // PLATFORM DETECTION
@@ -20,17 +22,26 @@ function getPlatform() {
         window.location.hostname;
 
 
-    if (hostname.includes("leetcode.com")) {
+    if (
+        hostname.includes("leetcode.com")
+    ) {
+
         return "leetcode";
+
     }
 
 
-    if (hostname.includes("codeforces.com")) {
+    if (
+        hostname.includes("codeforces.com")
+    ) {
+
         return "codeforces";
+
     }
 
 
     return "unknown";
+
 }
 
 
@@ -41,13 +52,16 @@ function getPlatform() {
 function cleanText(text) {
 
     if (!text) {
+
         return "";
+
     }
 
 
     return text
         .replace(/\s+/g, " ")
         .trim();
+
 }
 
 
@@ -59,44 +73,65 @@ function extractLeetCodeProblem() {
 
     const problem = {
 
-        platform: "leetcode",
+        platform:
+            "leetcode",
 
         url:
             window.location.href,
 
-        title: "",
+        title:
+            "",
 
-        description: "",
+        description:
+            "",
 
-        constraints: "",
+        constraints:
+            "",
 
-        examples: ""
+        examples:
+            ""
 
     };
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // TITLE
-    // --------------------------------------------------------
+    // ========================================================
 
     const titleSelectors = [
+
         'div[data-cy="question-title"]',
+
+        'a[href*="/problems/"] h1',
+
         'h1'
+
     ];
 
-    for (const selector of titleSelectors) {
+
+    for (
+        const selector
+        of titleSelectors
+    ) {
 
         const titleElement =
-            document.querySelector(selector);
+            document.querySelector(
+                selector
+            );
+
 
         if (!titleElement) {
+
             continue;
+
         }
+
 
         const title =
             cleanText(
                 titleElement.innerText
             );
+
 
         if (title) {
 
@@ -106,12 +141,13 @@ function extractLeetCodeProblem() {
             break;
 
         }
+
     }
 
 
-    // --------------------------------------------------------
-    // FALLBACK TITLE FROM PAGE METADATA
-    // --------------------------------------------------------
+    // ========================================================
+    // FALLBACK TITLE - META
+    // ========================================================
 
     if (!problem.title) {
 
@@ -120,20 +156,28 @@ function extractLeetCodeProblem() {
                 'meta[property="og:title"]'
             );
 
+
         if (metaTitle) {
 
             const content =
-                metaTitle.getAttribute("content");
+                metaTitle.getAttribute(
+                    "content"
+                );
+
 
             if (content) {
 
                 problem.title =
                     cleanText(
-                        content
-                            .replace(
-                                /\s*-\s*LeetCode.*$/i,
-                                ""
-                            )
+
+                        content.replace(
+
+                            /\s*-\s*LeetCode.*$/i,
+
+                            ""
+
+                        )
+
                     );
 
             }
@@ -143,27 +187,31 @@ function extractLeetCodeProblem() {
     }
 
 
-    // --------------------------------------------------------
-    // FALLBACK TITLE FROM PAGE TITLE
-    // --------------------------------------------------------
+    // ========================================================
+    // FALLBACK TITLE - DOCUMENT TITLE
+    // ========================================================
 
     if (!problem.title) {
 
         problem.title =
             cleanText(
-                document.title
-                    .replace(
-                        /\s*-\s*LeetCode.*$/i,
-                        ""
-                    )
+
+                document.title.replace(
+
+                    /\s*-\s*LeetCode.*$/i,
+
+                    ""
+
+                )
+
             );
 
     }
 
 
-    // --------------------------------------------------------
-    // FINAL FALLBACK FROM URL
-    // --------------------------------------------------------
+    // ========================================================
+    // FALLBACK TITLE - URL
+    // ========================================================
 
     if (!problem.title) {
 
@@ -172,22 +220,34 @@ function extractLeetCodeProblem() {
                 .split("/")
                 .filter(Boolean);
 
-        const problemIndex =
-            parts.indexOf("problems");
 
-        if (problemIndex !== -1) {
+        const problemIndex =
+            parts.indexOf(
+                "problems"
+            );
+
+
+        if (
+            problemIndex !== -1
+        ) {
 
             const slug =
-                parts[problemIndex + 1];
+                parts[
+                    problemIndex + 1
+                ];
+
 
             if (slug) {
 
                 problem.title =
+
                     slug
                         .split("-")
                         .map(
                             word =>
-                                word.charAt(0).toUpperCase() +
+                                word
+                                    .charAt(0)
+                                    .toUpperCase() +
                                 word.slice(1)
                         )
                         .join(" ");
@@ -199,9 +259,9 @@ function extractLeetCodeProblem() {
     }
 
 
-    // --------------------------------------------------------
-    // FIND PROBLEM DESCRIPTION
-    // --------------------------------------------------------
+    // ========================================================
+    // DESCRIPTION CONTAINER
+    // ========================================================
 
     const selectors = [
 
@@ -214,7 +274,8 @@ function extractLeetCodeProblem() {
     ];
 
 
-    let descriptionElement = null;
+    let descriptionElement =
+        null;
 
 
     for (
@@ -240,9 +301,9 @@ function extractLeetCodeProblem() {
     }
 
 
-    // --------------------------------------------------------
-    // EXTRACT CONTENT
-    // --------------------------------------------------------
+    // ========================================================
+    // EXTRACT DESCRIPTION
+    // ========================================================
 
     if (descriptionElement) {
 
@@ -258,7 +319,9 @@ function extractLeetCodeProblem() {
 
         const constraintsMatch =
             text.match(
+
                 /Constraints:\s*([\s\S]*?)(?=Follow-up|Related Topics|Similar Questions|$)/i
+
             );
 
 
@@ -278,7 +341,9 @@ function extractLeetCodeProblem() {
 
         const examplesMatch =
             text.match(
+
                 /Example\s*1:([\s\S]*?)(?=Constraints:|Follow-up|Example\s*\d+:|$)/i
+
             );
 
 
@@ -312,8 +377,11 @@ function extractLeetCodeProblem() {
 
             description =
                 description.substring(
+
                     0,
+
                     constraintsIndex
+
                 );
 
         }
@@ -327,11 +395,13 @@ function extractLeetCodeProblem() {
     }
 
 
-    // --------------------------------------------------------
-    // FALLBACK
-    // --------------------------------------------------------
+    // ========================================================
+    // FALLBACK DESCRIPTION
+    // ========================================================
 
-    if (!problem.description) {
+    if (
+        !problem.description
+    ) {
 
         problem.description =
             cleanText(
@@ -342,6 +412,7 @@ function extractLeetCodeProblem() {
 
 
     return problem;
+
 }
 
 
@@ -353,29 +424,36 @@ function extractCodeforcesProblem() {
 
     const problem = {
 
-        platform: "codeforces",
+        platform:
+            "codeforces",
 
         url:
             window.location.href,
 
-        title: "",
+        title:
+            "",
 
-        description: "",
+        description:
+            "",
 
-        constraints: "",
+        constraints:
+            "",
 
-        examples: ""
+        examples:
+            ""
 
     };
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // TITLE
-    // --------------------------------------------------------
+    // ========================================================
 
     const titleElement =
         document.querySelector(
+
             ".problem-statement .header .title"
+
         );
 
 
@@ -389,9 +467,9 @@ function extractCodeforcesProblem() {
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // PROBLEM STATEMENT
-    // --------------------------------------------------------
+    // ========================================================
 
     const statement =
         document.querySelector(
@@ -412,9 +490,9 @@ function extractCodeforcesProblem() {
         );
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // INPUT / OUTPUT
-    // --------------------------------------------------------
+    // ========================================================
 
     const inputIndex =
         text.search(
@@ -435,16 +513,19 @@ function extractCodeforcesProblem() {
 
         problem.constraints =
             text.substring(
+
                 inputIndex,
+
                 outputIndex
+
             );
 
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // EXAMPLES
-    // --------------------------------------------------------
+    // ========================================================
 
     const exampleIndex =
         text.search(
@@ -464,9 +545,9 @@ function extractCodeforcesProblem() {
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // DESCRIPTION
-    // --------------------------------------------------------
+    // ========================================================
 
     let description =
         text;
@@ -478,8 +559,11 @@ function extractCodeforcesProblem() {
 
         description =
             text.substring(
+
                 0,
+
                 inputIndex
+
             );
 
     }
@@ -492,6 +576,7 @@ function extractCodeforcesProblem() {
 
 
     return problem;
+
 }
 
 
@@ -524,6 +609,7 @@ function extractProblem() {
 
 
     return null;
+
 }
 
 
@@ -546,9 +632,13 @@ function saveProblem(problem) {
 
 
     console.log(
+
         "Current problem:",
+
         problem
+
     );
+
 }
 
 
@@ -573,7 +663,9 @@ function sendProblemToExtension() {
     }
 
 
-    saveProblem(problem);
+    saveProblem(
+        problem
+    );
 
 
     chrome.runtime.sendMessage({
@@ -589,8 +681,6 @@ function sendProblemToExtension() {
 }
 
 
-// Run problem detection
-
 sendProblemToExtension();
 
 
@@ -600,7 +690,9 @@ sendProblemToExtension();
 
 function createTutorUI(problem) {
 
-    // Prevent duplicate chatbot
+    // --------------------------------------------------------
+    // PREVENT DUPLICATE CHATBOT
+    // --------------------------------------------------------
 
     if (
         document.getElementById(
@@ -635,7 +727,9 @@ function createTutorUI(problem) {
 
                 <div id="dsa-tutor-platform">
 
-                    ${problem.platform}
+                    ${escapeHtml(
+                        problem.platform
+                    )}
 
                 </div>
 
@@ -667,9 +761,12 @@ function createTutorUI(problem) {
 
                 <div id="dsa-tutor-title">
 
-                    ${problem.title ||
-        "Problem"
-        }
+                    ${
+                        escapeHtml(
+                            problem.title ||
+                            "Problem"
+                        )
+                    }
 
                 </div>
 
@@ -692,10 +789,13 @@ function createTutorUI(problem) {
                     <br><br>
 
                     I'll help you solve this
-                    problem through hints and
-                    explanations instead of
-                    immediately giving you
-                    the solution.
+                    problem through progressive
+                    hints and explanations.
+
+                    <br><br>
+
+                    Start by asking a question
+                    or click <b>💡 Hint</b>.
 
                 </div>
 
@@ -705,6 +805,16 @@ function createTutorUI(problem) {
 
 
         <div id="dsa-tutor-footer">
+
+            <button
+                id="dsa-tutor-hint"
+                title="Get another hint"
+            >
+
+                💡 Hint
+
+            </button>
+
 
             <input
                 id="dsa-tutor-input"
@@ -742,12 +852,15 @@ function createTutorUI(problem) {
             "dsa-tutor-close"
         )
         .addEventListener(
+
             "click",
+
             () => {
 
                 container.remove();
 
             }
+
         );
 
 
@@ -760,7 +873,9 @@ function createTutorUI(problem) {
             "dsa-tutor-send"
         )
         .addEventListener(
+
             "click",
+
             () => {
 
                 const input =
@@ -788,6 +903,30 @@ function createTutorUI(problem) {
                 input.value = "";
 
             }
+
+        );
+
+
+    // ========================================================
+    // HINT BUTTON
+    // ========================================================
+
+    document
+        .getElementById(
+            "dsa-tutor-hint"
+        )
+        .addEventListener(
+
+            "click",
+
+            () => {
+
+                addUserMessage(
+                    "another hint"
+                );
+
+            }
+
         );
 
 
@@ -800,7 +939,9 @@ function createTutorUI(problem) {
             "dsa-tutor-input"
         )
         .addEventListener(
+
             "keydown",
+
             (event) => {
 
                 if (
@@ -819,6 +960,7 @@ function createTutorUI(problem) {
                 }
 
             }
+
         );
 
 }
@@ -828,7 +970,9 @@ function createTutorUI(problem) {
 // ADD USER MESSAGE
 // ============================================================
 
-async function addUserMessage(message) {
+async function addUserMessage(
+    message
+) {
 
     const body =
         document.getElementById(
@@ -843,9 +987,9 @@ async function addUserMessage(message) {
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // DISPLAY USER MESSAGE
-    // --------------------------------------------------------
+    // ========================================================
 
     const userMessage =
         document.createElement(
@@ -870,15 +1014,9 @@ async function addUserMessage(message) {
         body.scrollHeight;
 
 
-    // --------------------------------------------------------
-    // CREATE TEMPORARY HISTORY
-    //
-    // We DON'T immediately add the message to
-    // conversationHistory.
-    //
-    // If relevance check rejects it,
-    // it shouldn't become part of the conversation.
-    // --------------------------------------------------------
+    // ========================================================
+    // TEMPORARY HISTORY
+    // ========================================================
 
     const pendingHistory = [
 
@@ -886,18 +1024,20 @@ async function addUserMessage(message) {
 
         {
 
-            role: "user",
+            role:
+                "user",
 
-            content: message
+            content:
+                message
 
         }
 
     ];
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // LOADING MESSAGE
-    // --------------------------------------------------------
+    // ========================================================
 
     const loadingMessage =
         document.createElement(
@@ -936,18 +1076,21 @@ async function addUserMessage(message) {
         body.scrollHeight;
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // SEND TO BACKEND
-    // --------------------------------------------------------
+    // ========================================================
 
     try {
 
         const response =
             await fetch(
+
                 "http://localhost:5000/api/chat",
+
                 {
 
-                    method: "POST",
+                    method:
+                        "POST",
 
                     headers: {
 
@@ -956,28 +1099,46 @@ async function addUserMessage(message) {
 
                     },
 
-                    body: JSON.stringify({
+                    body:
+                        JSON.stringify({
 
-                        problem:
-                            currentProblem,
+                            problem:
+                                currentProblem,
 
-                        history:
-                            pendingHistory
+                            history:
+                                pendingHistory,
 
-                    })
+                            hintLevel:
+                                hintLevel
+
+                        })
 
                 }
+
             );
 
 
-        // ----------------------------------------------------
-        // CHECK HTTP STATUS
-        // ----------------------------------------------------
+        // ====================================================
+        // HTTP ERROR
+        // ====================================================
 
-        if (!response.ok) {
+        if (
+            !response.ok
+        ) {
+
+            const errorData =
+                await response.json()
+                    .catch(
+                        () => null
+                    );
+
 
             throw new Error(
+
+                errorData?.message ||
+
                 `Server returned ${response.status}`
+
             );
 
         }
@@ -987,82 +1148,106 @@ async function addUserMessage(message) {
             await response.json();
 
 
-        // ----------------------------------------------------
+        // ====================================================
         // REMOVE LOADING
-        // ----------------------------------------------------
+        // ====================================================
 
         loadingMessage.remove();
 
 
-        // ----------------------------------------------------
+        // ====================================================
         // BACKEND ERROR
-        // ----------------------------------------------------
+        // ====================================================
 
-        if (!data.success) {
+        if (
+            !data.success
+        ) {
 
             addBotMessage(
 
                 data.message ||
+
                 "Something went wrong."
 
             );
+
 
             return;
 
         }
 
 
-        // ----------------------------------------------------
+        // ====================================================
         // UNRELATED QUESTION
-        // ----------------------------------------------------
+        // ====================================================
 
         if (
             data.related === false
         ) {
 
             addRelevanceWarning(
+
                 data.response
+
             );
 
 
-            // IMPORTANT:
-            // Do NOT add this question
-            // to conversationHistory.
+            // Do NOT save rejected question.
 
             return;
 
         }
 
 
-        // ----------------------------------------------------
+        // ====================================================
         // RELATED QUESTION
-        // ----------------------------------------------------
+        // ====================================================
 
         conversationHistory.push({
 
-            role: "user",
+            role:
+                "user",
 
-            content: message
+            content:
+                message
 
         });
 
 
-        // ----------------------------------------------------
-        // DISPLAY AI RESPONSE
-        // ----------------------------------------------------
+        // ====================================================
+        // UPDATE HINT LEVEL
+        // ====================================================
+
+        if (
+            typeof data.hintLevel ===
+            "number"
+        ) {
+
+            hintLevel =
+                data.hintLevel;
+
+        }
+
+
+        // ====================================================
+        // DISPLAY RESPONSE
+        // ====================================================
 
         addBotMessage(
+
             data.response
+
         );
 
 
-        // ----------------------------------------------------
-        // SAVE AI RESPONSE
-        // ----------------------------------------------------
+        // ====================================================
+        // SAVE RESPONSE
+        // ====================================================
 
         conversationHistory.push({
 
-            role: "assistant",
+            role:
+                "assistant",
 
             content:
                 data.response
@@ -1075,19 +1260,22 @@ async function addUserMessage(message) {
     catch (error) {
 
         console.error(
+
             "Backend error:",
+
             error
+
         );
 
-
-        // Remove loading
 
         loadingMessage.remove();
 
 
         addBotMessage(
 
-            "I couldn't connect to the DSA Tutor backend. Make sure the backend is running on port 5000."
+            error.message ||
+
+            "Something went wrong."
 
         );
 
@@ -1145,8 +1333,9 @@ function addBotMessage(message) {
         );
 
 
-    messageContent.innerText =
-        message;
+    // Render basic Markdown
+    messageContent.innerHTML =
+        formatTutorMessage(message);
 
 
     messageElement.appendChild(
@@ -1169,12 +1358,108 @@ function addBotMessage(message) {
 
 }
 
+function formatTutorMessage(message) {
+
+    if (!message) {
+
+        return "";
+
+    }
+
+
+    // First escape HTML for safety
+
+    let formatted =
+        escapeHtml(message);
+
+
+    // Remove LaTeX block delimiters
+
+    formatted =
+        formatted.replace(
+            /\$\$(.*?)\$\$/gs,
+            "$1"
+        );
+
+
+    // Remove inline LaTeX delimiters
+
+    formatted =
+        formatted.replace(
+            /\\\((.*?)\\\)/gs,
+            "$1"
+        );
+
+
+    formatted =
+        formatted.replace(
+            /\\\[(.*?)\\\]/gs,
+            "$1"
+        );
+
+
+    // Convert common LaTeX commands
+
+    formatted =
+        formatted.replace(
+            /\\text\{([^}]*)\}/g,
+            "$1"
+        );
+
+
+    formatted =
+        formatted.replace(
+            /\\mathrm\{([^}]*)\}/g,
+            "$1"
+        );
+
+
+    formatted =
+        formatted.replace(
+            /\\mathbf\{([^}]*)\}/g,
+            "<strong>$1</strong>"
+        );
+
+
+    // Convert common Markdown bold
+
+    formatted =
+        formatted.replace(
+            /\*\*(.*?)\*\*/g,
+            "<strong>$1</strong>"
+        );
+
+
+    // Convert inline code
+
+    formatted =
+        formatted.replace(
+            /`([^`]+)`/g,
+            "<code>$1</code>"
+        );
+
+
+    // Convert new lines
+
+    formatted =
+        formatted.replace(
+            /\n/g,
+            "<br>"
+        );
+
+
+    return formatted;
+
+}
+
 
 // ============================================================
 // ADD RELEVANCE WARNING
 // ============================================================
 
-function addRelevanceWarning(message) {
+function addRelevanceWarning(
+    message
+) {
 
     const body =
         document.getElementById(
@@ -1210,7 +1495,9 @@ function addRelevanceWarning(message) {
 
         <div>
 
-            ${escapeHtml(message)}
+            ${escapeHtml(
+                message
+            )}
 
         </div>
 
@@ -1231,12 +1518,10 @@ function addRelevanceWarning(message) {
 // ============================================================
 // ESCAPE HTML
 // ============================================================
-//
-// Used when inserting backend-generated text
-// into innerHTML.
-// ============================================================
 
-function escapeHtml(text) {
+function escapeHtml(
+    text
+) {
 
     const div =
         document.createElement(
@@ -1261,9 +1546,9 @@ chrome.runtime.onMessage.addListener(
 
     (message) => {
 
-        // -----------------------------------------------
+        // ====================================================
         // ACTIVATE TUTOR
-        // -----------------------------------------------
+        // ====================================================
 
         if (
             message.type ===
@@ -1286,14 +1571,10 @@ chrome.runtime.onMessage.addListener(
             }
 
 
-            // Save latest problem
-
             saveProblem(
                 problem
             );
 
-
-            // Create UI
 
             createTutorUI(
                 problem
@@ -1307,14 +1588,7 @@ chrome.runtime.onMessage.addListener(
 
 
 // ============================================================
-// OPTIONAL: DETECT PAGE CHANGES
-// ============================================================
-//
-// LeetCode is a SPA. When navigating between problems,
-// the page may change without a full browser refresh.
-//
-// This periodically checks whether the current URL/problem
-// has changed.
+// DETECT PAGE CHANGES
 // ============================================================
 
 let lastKnownUrl =
@@ -1322,6 +1596,7 @@ let lastKnownUrl =
 
 
 setInterval(
+
     () => {
 
         const currentUrl =
@@ -1338,7 +1613,9 @@ setInterval(
 
 
             console.log(
+
                 "Problem page changed. Re-extracting problem."
+
             );
 
 
@@ -1352,8 +1629,20 @@ setInterval(
                     newProblem;
 
 
+                // ------------------------------------------------
+                // RESET CONVERSATION
+                // ------------------------------------------------
+
                 conversationHistory =
                     [];
+
+
+                // ------------------------------------------------
+                // RESET HINT LEVEL
+                // ------------------------------------------------
+
+                hintLevel =
+                    0;
 
 
                 saveProblem(
@@ -1361,8 +1650,9 @@ setInterval(
                 );
 
 
-                // Update title if chatbot
-                // is already open
+                // ------------------------------------------------
+                // UPDATE CHATBOT TITLE
+                // ------------------------------------------------
 
                 const titleElement =
                     document.getElementById(
@@ -1383,5 +1673,7 @@ setInterval(
         }
 
     },
+
     1000
+
 );
