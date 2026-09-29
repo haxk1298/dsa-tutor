@@ -1,43 +1,38 @@
 {
-  "manifest_version": 3,
-  "name": "DSA Tutor",
-  "version": "1.0.0",
-  "description": "An AI-powered DSA tutor for LeetCode and Codeforces.",
-  
-  "permissions": [
-    "activeTab",
-    "scripting",
-    "storage"
-  ],
-
-  "host_permissions": [
-    "https://leetcode.com/*",
-    "https://codeforces.com/*"
-  ],
-
-  "background": {
-    "service_worker": "background.js"
-  },
-
-  "action": {
-    "default_title": "Open DSA Tutor",
-    "default_popup": "popup/popup.html"
-  },
-
-  "content_scripts": [
-    {
-      "matches": [
+    "manifest_version": 3,
+    "name": "DSA Tutor",
+    "version": "1.0.0",
+    "description": "An AI-powered DSA tutor for LeetCode and Codeforces.",
+    "permissions": [
+        "activeTab",
+        "scripting",
+        "storage"
+    ],
+    "host_permissions": [
         "https://leetcode.com/*",
-        "https://codeforces.com/*"
-      ],
-      "js": [
-        "content/content.js"
-      ],
-      "css": [
-        "content/content.css"
-      ]
-    }
-  ],
-
-  "icons": {}
+        "https://codeforces.com/*",
+        "http://localhost:5000/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action": {
+        "default_title": "Open DSA Tutor",
+        "default_popup": "popup/popup.html"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://leetcode.com/*",
+                "https://codeforces.com/*"
+            ],
+            "js": [
+                "content/content.js"
+            ],
+            "css": [
+                "content/content.css"
+            ]
+        }
+    ],
+    "icons": {}
 }

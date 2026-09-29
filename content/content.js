@@ -2,6 +2,8 @@ console.log("DSA Tutor content script loaded");
 
 let currentProblem = null;
 
+let conversationHistory = [];
+
 function getPlatform() {
     const hostname = window.location.hostname;
 
@@ -273,37 +275,183 @@ function createTutorUI(problem) {
 }
 
 
-function addUserMessage(message) {
+async function addUserMessage(message) {
 
     const body =
         document.getElementById(
             "dsa-tutor-body"
         );
 
-    const messageElement =
+
+    // -----------------------------
+    // Display user message
+    // -----------------------------
+
+    const userMessage =
         document.createElement("div");
 
-    messageElement.className =
+    userMessage.className =
         "dsa-user-message";
 
-    messageElement.innerText =
+    userMessage.innerText =
         message;
 
-    body.appendChild(messageElement);
+    body.appendChild(userMessage);
+
+
+    // -----------------------------
+    // Add user message to history
+    // -----------------------------
+
+    conversationHistory.push({
+
+        role: "user",
+
+        content: message
+
+    });
+
+
+    // -----------------------------
+    // Scroll
+    // -----------------------------
 
     body.scrollTop =
         body.scrollHeight;
 
 
-    // Temporary Phase 1 response
+    // -----------------------------
+    // Loading message
+    // -----------------------------
 
-    setTimeout(() => {
+    const loadingMessage =
+        document.createElement("div");
+
+    loadingMessage.className =
+        "dsa-tutor-message";
+
+    loadingMessage.innerHTML = `
+
+        <div class="dsa-bot">
+            🤖
+        </div>
+
+        <div>
+            Thinking...
+        </div>
+
+    `;
+
+    body.appendChild(
+        loadingMessage
+    );
+
+
+    body.scrollTop =
+        body.scrollHeight;
+
+
+    // -----------------------------
+    // Send to backend
+    // -----------------------------
+
+    try {
+
+        const response =
+            await fetch(
+                "http://localhost:5000/api/chat",
+                {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        problem:
+                            currentProblem,
+
+                        history:
+                            conversationHistory
+
+                    })
+
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        // Remove loading
+
+        loadingMessage.remove();
+
+
+        // -----------------------------
+        // Backend error
+        // -----------------------------
+
+        if (!data.success) {
+
+            addBotMessage(
+
+                data.message ||
+                "Something went wrong."
+
+            );
+
+            return;
+        }
+
+
+        // -----------------------------
+        // Add Gemini response
+        // -----------------------------
 
         addBotMessage(
-            "AI tutoring will be connected in Phase 2. For now, I can detect this problem correctly."
+            data.response
         );
 
-    }, 300);
+
+        // -----------------------------
+        // Save AI response
+        // -----------------------------
+
+        conversationHistory.push({
+
+            role: "assistant",
+
+            content:
+                data.response
+
+        });
+
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Backend error:",
+            error
+        );
+
+
+        loadingMessage.remove();
+
+
+        addBotMessage(
+
+            "I couldn't connect to the DSA Tutor backend. Make sure the backend is running."
+
+        );
+
+    }
 
 }
 
