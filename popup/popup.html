@@ -3,28 +3,298 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>DSA Tutor</title>
 
-    <link rel="stylesheet" href="popup.css">
+    <link
+        rel="stylesheet"
+        href="popup.css"
+    >
 </head>
 
 <body>
 
     <div class="container">
 
-        <h1>🧠 DSA Tutor</h1>
+        <!-- =================================================
+             HEADER
+        ================================================== -->
 
-        <p id="status">
-            Checking current page...
-        </p>
+        <div class="header">
 
-        <button id="activateBtn">
-            Activate Tutor
-        </button>
+            <div class="logo">
+                🧠
+            </div>
+
+            <div>
+
+                <h1>DSA Tutor</h1>
+
+                <p>
+                    AI-powered DSA learning
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             LOGIN VIEW
+        ================================================== -->
+
+        <div
+            id="login-view"
+            class="auth-view"
+        >
+
+            <h2>Welcome back</h2>
+
+            <p class="subtitle">
+                Login to continue learning.
+            </p>
+
+
+            <label for="login-email">
+                Email
+            </label>
+
+            <input
+                id="login-email"
+                type="email"
+                placeholder="Enter your email"
+                autocomplete="email"
+            >
+
+
+            <label for="login-password">
+                Password
+            </label>
+
+            <input
+                id="login-password"
+                type="password"
+                placeholder="Enter your password"
+                autocomplete="current-password"
+            >
+
+
+            <button
+                id="login-button"
+                class="primary-button"
+            >
+                Login
+            </button>
+
+
+            <div
+                id="login-error"
+                class="error-message"
+            ></div>
+
+
+            <p class="switch-text">
+
+                Don't have an account?
+
+                <button
+                    id="show-register"
+                    class="link-button"
+                >
+                    Register
+                </button>
+
+            </p>
+
+        </div>
+
+
+        <!-- =================================================
+             REGISTER VIEW
+        ================================================== -->
+
+        <div
+            id="register-view"
+            class="auth-view hidden"
+        >
+
+            <h2>Create account</h2>
+
+            <p class="subtitle">
+                Start your DSA learning journey.
+            </p>
+
+
+            <label for="register-name">
+                Name
+            </label>
+
+            <input
+                id="register-name"
+                type="text"
+                placeholder="Enter your name"
+                autocomplete="name"
+            >
+
+
+            <label for="register-email">
+                Email
+            </label>
+
+            <input
+                id="register-email"
+                type="email"
+                placeholder="Enter your email"
+                autocomplete="email"
+            >
+
+
+            <label for="register-password">
+                Password
+            </label>
+
+            <input
+                id="register-password"
+                type="password"
+                placeholder="Minimum 6 characters"
+                autocomplete="new-password"
+            >
+
+
+            <label for="register-confirm-password">
+                Confirm Password
+            </label>
+
+            <input
+                id="register-confirm-password"
+                type="password"
+                placeholder="Confirm password"
+                autocomplete="new-password"
+            >
+
+
+            <button
+                id="register-button"
+                class="primary-button"
+            >
+                Register
+            </button>
+
+
+            <div
+                id="register-error"
+                class="error-message"
+            ></div>
+
+
+            <p class="switch-text">
+
+                Already have an account?
+
+                <button
+                    id="show-login"
+                    class="link-button"
+                >
+                    Login
+                </button>
+
+            </p>
+
+        </div>
+
+
+        <!-- =================================================
+             LOGGED-IN VIEW
+        ================================================== -->
+
+        <div
+            id="user-view"
+            class="hidden"
+        >
+
+            <div class="user-card">
+
+                <div class="user-avatar">
+                    👤
+                </div>
+
+                <div>
+
+                    <div
+                        id="user-name"
+                        class="user-name"
+                    >
+                        User
+                    </div>
+
+                    <div
+                        id="user-email"
+                        class="user-email"
+                    >
+                        user@example.com
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="welcome-box">
+
+                <div class="welcome-icon">
+                    🎯
+                </div>
+
+                <div>
+
+                    <strong>
+                        Ready to learn?
+                    </strong>
+
+                    <p>
+                        Open the current DSA problem
+                        with your AI tutor.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <button
+                id="open-tutor-button"
+                class="primary-button"
+            >
+                🧠 Open DSA Tutor
+            </button>
+
+
+            <button
+                id="logout-button"
+                class="secondary-button"
+            >
+                Logout
+            </button>
+
+        </div>
+
+
+        <!-- =================================================
+             STATUS
+        ================================================== -->
+
+        <div
+            id="status-message"
+            class="status-message"
+        ></div>
 
     </div>
+
 
     <script src="popup.js"></script>
 

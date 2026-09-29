@@ -163,6 +163,28 @@ function createEmptySession(problem) {
 
 }
 
+// ============================================================
+// GET AUTH TOKEN
+// ============================================================
+
+function getAuthToken() {
+
+    return new Promise(resolve => {
+
+        chrome.storage.local.get(
+            ["authToken"],
+            result => {
+
+                resolve(
+                    result.authToken || null
+                );
+
+            }
+        );
+
+    });
+
+}
 
 // ============================================================
 // LOAD ALL SESSIONS
@@ -236,10 +258,23 @@ async function saveSessions(
 // ============================================================
 // SAVE CURRENT SESSION
 // ============================================================
-
 async function saveCurrentSession() {
 
     if (!currentProblem) {
+
+        return;
+
+    }
+
+
+    const token =
+        await getAuthToken();
+
+    if (!token) {
+
+        console.warn(
+            "No authentication token. Session not saved."
+        );
 
         return;
 
@@ -251,10 +286,120 @@ async function saveCurrentSession() {
             currentProblem
         );
 
-
     if (!problemKey) {
 
         return;
+
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                "http://localhost:5000/api/sessions",
+                {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json",
+
+                        "Authorization":
+                            `Bearer ${token}`
+
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            problemKey,
+
+                            problemTitle:
+                                currentProblem.title ||
+                                "Problem",
+
+                            platform:
+                                currentProblem.platform ||
+                                "unknown",
+
+                            url:
+                                currentProblem.url ||
+                                window.location.href,
+
+                            conversationHistory,
+
+                            hintLevel,
+
+                            sessionStats
+
+                        })
+
+                }
+            );
+
+
+        if (!response.ok) {
+
+            const errorData =
+                await response.json()
+                    .catch(
+                        () => null
+                    );
+
+            throw new Error(
+
+                errorData?.message ||
+                `Session save failed: ${response.status}`
+
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        console.log(
+            "Session saved to MongoDB:",
+            data.session
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "MongoDB session save error:",
+            error
+        );
+
+    }
+
+}
+
+// ============================================================
+// MIGRATE OLD LOCAL SESSION
+// ============================================================
+
+async function migrateLocalSession(problem) {
+
+    if (!problem) {
+
+        return false;
+
+    }
+
+
+    const problemKey =
+        getProblemKey(problem);
+
+    if (!problemKey) {
+
+        return false;
 
     }
 
@@ -263,43 +408,94 @@ async function saveCurrentSession() {
         await loadSessions();
 
 
-    sessions[problemKey] = {
+    const oldSession =
+        sessions[problemKey];
 
-        problemKey,
 
-        problemTitle:
-            currentProblem.title ||
-            "Problem",
+    if (!oldSession) {
 
-        platform:
-            currentProblem.platform ||
-            "unknown",
+        return false;
 
-        url:
-            currentProblem.url ||
-            window.location.href,
+    }
 
-        conversationHistory:
-            conversationHistory,
 
-        hintLevel:
-            hintLevel,
+    console.log(
+        "Migrating old local session to MongoDB..."
+    );
 
-        sessionStats:
-            sessionStats,
 
-        updatedAt:
-            Date.now()
+    const oldConversation =
+        Array.isArray(
+            oldSession.conversationHistory
+        )
 
-    };
+            ? oldSession.conversationHistory
 
+            : [];
+
+
+    const oldHintLevel =
+        typeof oldSession.hintLevel === "number"
+
+            ? oldSession.hintLevel
+
+            : 0;
+
+
+    const oldStats =
+        oldSession.sessionStats || {
+
+            questionsAsked: 0,
+
+            hintsUsed: 0,
+
+            debugAttempts: 0
+
+        };
+
+
+    const previousProblem =
+        currentProblem;
+
+
+    currentProblem =
+        problem;
+
+
+    conversationHistory =
+        oldConversation;
+
+
+    hintLevel =
+        oldHintLevel;
+
+
+    sessionStats =
+        oldStats;
+
+
+    await saveCurrentSession();
+
+
+    currentProblem =
+        previousProblem || problem;
+
+
+    delete sessions[problemKey];
 
     await saveSessions(
         sessions
     );
 
-}
 
+    console.log(
+        "Old local session migrated successfully."
+    );
+
+
+    return true;
+
+}
 
 // ============================================================
 // LOAD CURRENT SESSION
@@ -316,11 +512,20 @@ async function loadCurrentSession(
     }
 
 
+    const token =
+        await getAuthToken();
+
+    if (!token) {
+
+        return false;
+
+    }
+
+
     const problemKey =
         getProblemKey(
             problem
         );
-
 
     if (!problemKey) {
 
@@ -329,65 +534,122 @@ async function loadCurrentSession(
     }
 
 
-    const sessions =
-        await loadSessions();
+    try {
+
+        const response =
+            await fetch(
+
+                `http://localhost:5000/api/sessions/${encodeURIComponent(problemKey)}`,
+
+                {
+
+                    method: "GET",
+
+                    headers: {
+
+                        "Authorization":
+                            `Bearer ${token}`
+
+                    }
+
+                }
+
+            );
 
 
-    const session =
-        sessions[problemKey];
+        if (response.status === 404) {
+
+            return false;
+
+        }
 
 
-    if (!session) {
+        if (!response.ok) {
+
+            throw new Error(
+
+                `Session load failed: ${response.status}`
+
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !data.success ||
+            !data.session
+        ) {
+
+            return false;
+
+        }
+
+
+        const session =
+            data.session;
+
+
+        currentProblem =
+            problem;
+
+
+        conversationHistory =
+            Array.isArray(
+                session.conversationHistory
+            )
+
+                ? session.conversationHistory
+
+                : [];
+
+
+        hintLevel =
+            typeof session.hintLevel ===
+                "number"
+
+                ? session.hintLevel
+
+                : 0;
+
+
+        sessionStats =
+            session.sessionStats || {
+
+                questionsAsked: 0,
+
+                hintsUsed: 0,
+
+                debugAttempts: 0
+
+            };
+
+
+        console.log(
+            "MongoDB session restored:",
+            session
+        );
+
+
+        return true;
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "MongoDB session load error:",
+            error
+        );
 
         return false;
 
     }
 
-
-    currentProblem =
-        problem;
-
-
-    conversationHistory =
-        Array.isArray(
-            session.conversationHistory
-        )
-
-            ? session.conversationHistory
-
-            : [];
-
-
-    hintLevel =
-        typeof session.hintLevel === "number"
-
-            ? session.hintLevel
-
-            : 0;
-
-
-    sessionStats =
-        session.sessionStats || {
-
-            questionsAsked: 0,
-
-            hintsUsed: 0,
-
-            debugAttempts: 0
-
-        };
-
-
-    console.log(
-        "Previous session restored:",
-        session
-    );
-
-
-    return true;
-
 }
-
 
 // ============================================================
 // DELETE CURRENT SESSION
@@ -402,11 +664,20 @@ async function deleteCurrentSession() {
     }
 
 
+    const token =
+        await getAuthToken();
+
+    if (!token) {
+
+        return;
+
+    }
+
+
     const problemKey =
         getProblemKey(
             currentProblem
         );
-
 
     if (!problemKey) {
 
@@ -415,19 +686,54 @@ async function deleteCurrentSession() {
     }
 
 
-    const sessions =
-        await loadSessions();
+    try {
+
+        const response =
+            await fetch(
+
+                `http://localhost:5000/api/sessions/${encodeURIComponent(problemKey)}`,
+
+                {
+
+                    method: "DELETE",
+
+                    headers: {
+
+                        "Authorization":
+                            `Bearer ${token}`
+
+                    }
+
+                }
+
+            );
 
 
-    delete sessions[problemKey];
+        if (!response.ok) {
+
+            throw new Error(
+                `Session delete failed: ${response.status}`
+            );
+
+        }
 
 
-    await saveSessions(
-        sessions
-    );
+        console.log(
+            "MongoDB session deleted."
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "MongoDB session delete error:",
+            error
+        );
+
+    }
 
 }
-
 
 // ============================================================
 // START NEW SESSION
@@ -440,14 +746,11 @@ async function startNewSession(
     currentProblem =
         problem;
 
-
     conversationHistory =
         [];
 
-
     hintLevel =
         0;
-
 
     sessionStats = {
 
@@ -458,7 +761,6 @@ async function startNewSession(
         debugAttempts: 0
 
     };
-
 
     await saveCurrentSession();
 
@@ -1592,7 +1894,7 @@ function createTutorUI(problem) {
 
         }
     );
-    
+
     // ========================================================
     // CLOSE
     // ========================================================
@@ -1879,10 +2181,9 @@ async function addUserMessage(
                         "POST",
 
                     headers: {
-
-                        "Content-Type":
-                            "application/json"
-
+                        "Content-Type": "application/json",
+                        "Authorization":
+                            `Bearer ${await getAuthToken()}`
                     },
 
                     body:
@@ -1904,9 +2205,23 @@ async function addUserMessage(
             );
 
 
-        if (
-            !response.ok
-        ) {
+        if (response.status === 401) {
+
+            chrome.storage.local.remove(
+                ["authToken", "user"]
+            );
+
+            loadingMessage.remove();
+
+            addBotMessage(
+                "Your login session has expired. Please login again."
+            );
+
+            return;
+        }
+
+
+        if (!response.ok) {
 
             const errorData =
                 await response.json()
@@ -1914,15 +2229,10 @@ async function addUserMessage(
                         () => null
                     );
 
-
             throw new Error(
-
                 errorData?.message ||
-
                 `Server returned ${response.status}`
-
             );
-
         }
 
 
@@ -2190,10 +2500,9 @@ async function debugCurrentCode() {
                         "POST",
 
                     headers: {
-
-                        "Content-Type":
-                            "application/json"
-
+                        "Content-Type": "application/json",
+                        "Authorization":
+                            `Bearer ${await getAuthToken()}`
                     },
 
                     body:
@@ -2224,9 +2533,23 @@ async function debugCurrentCode() {
             );
 
 
-        if (
-            !response.ok
-        ) {
+        if (response.status === 401) {
+
+            chrome.storage.local.remove(
+                ["authToken", "user"]
+            );
+
+            loadingMessage.remove();
+
+            addBotMessage(
+                "Your login session has expired. Please login again."
+            );
+
+            return;
+        }
+
+
+        if (!response.ok) {
 
             const errorData =
                 await response.json()
@@ -2234,17 +2557,11 @@ async function debugCurrentCode() {
                         () => null
                     );
 
-
             throw new Error(
-
                 errorData?.message ||
-
                 `Server returned ${response.status}`
-
             );
-
         }
-
 
         const data =
             await response.json();
@@ -2615,7 +2932,48 @@ function escapeHtml(
     return div.innerHTML;
 
 }
+// ============================================================
+// CHECK AUTHENTICATION
+// ============================================================
 
+function checkAuthentication() {
+
+    return new Promise(
+        resolve => {
+
+            chrome.storage.local.get(
+                ["authToken", "user"],
+
+                result => {
+
+                    if (
+                        result.authToken &&
+                        result.user
+                    ) {
+
+                        resolve({
+                            authenticated: true,
+                            user: result.user
+                        });
+
+                    }
+
+                    else {
+
+                        resolve({
+                            authenticated: false,
+                            user: null
+                        });
+
+                    }
+
+                }
+            );
+
+        }
+    );
+
+}
 
 // ============================================================
 // ACTIVATE TUTOR
@@ -2623,12 +2981,41 @@ function escapeHtml(
 
 chrome.runtime.onMessage.addListener(
 
+
     async message => {
+
+        if (message.type === "LOGOUT") {
+
+            const tutor =
+                document.getElementById(
+                    "dsa-tutor-container"
+                );
+
+            if (tutor) {
+                tutor.remove();
+            }
+
+            return;
+        }
 
         if (
             message.type !==
             "ACTIVATE_TUTOR"
         ) {
+
+            return;
+
+        }
+
+        const auth =
+            await checkAuthentication();
+
+
+        if (!auth.authenticated) {
+
+            alert(
+                "Please login to DSA Tutor first."
+            );
 
             return;
 
@@ -2664,10 +3051,27 @@ chrome.runtime.onMessage.addListener(
         // TRY RESTORING PREVIOUS SESSION
         // ----------------------------------------------------
 
-        const restored =
+        let restored =
             await loadCurrentSession(
                 problem
             );
+
+
+        if (!restored) {
+
+            const migrated =
+                await migrateLocalSession(
+                    problem
+                );
+
+
+            if (migrated) {
+
+                restored = true;
+
+            }
+
+        }
 
 
         if (!restored) {
